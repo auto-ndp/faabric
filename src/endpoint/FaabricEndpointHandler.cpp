@@ -80,6 +80,7 @@ void FaabricEndpointHandler::onRequest(
             // Read the load from top command
             SPDLOG_DEBUG("Processing load request");
             std::string loadStr = faabric::util::getLoadAsString();
+            SPDLOG_DEBUG("Served load: {}", loadStr);
             response.result(beast::http::status::ok);
             response.body() = loadStr;     
         } else if (msg->isexecgraphrequest()) {
