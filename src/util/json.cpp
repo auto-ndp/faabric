@@ -222,6 +222,9 @@ std::string messageToJson(const faabric::Message& msg)
     if (msg.forbidndp()) {
         d.AddMember("forbid_ndp", Value(msg.forbidndp()), a);
     }
+    if (msg.isloadrequest()) {
+        d.AddMember("load_request", Value(msg.isloadrequest()), a);
+    }
 
     StringBuffer sb;
     Writer<StringBuffer> writer(sb);
@@ -435,6 +438,7 @@ faabric::Message jsonToMessage(const std::string& jsonIn)
       getBoolFromJson(d, "is_output_memory_delta", false));
     msg.set_directresulthost(getStringFromJson(d, "direct_result_host", ""));
     msg.set_forbidndp(getBoolFromJson(d, "forbid_ndp", false));
+    msg.set_isloadrequest(getBoolFromJson(d, "load_request", false));
 
     PROF_END(jsonDecode)
 

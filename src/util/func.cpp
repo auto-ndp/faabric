@@ -31,6 +31,23 @@ std::string funcToString(const faabric::Message& msg, bool includeId)
     return str;
 }
 
+std::string getLoadAsString()
+{
+    // Read the load from top command
+    std::string loadStr;
+    popen("top -b -n 1 | head -n 1", "r", [&](FILE* stream) {
+        char* line = NULL;
+        size_t len = 0;
+        ssize_t read;
+
+        if ((read = getline(&line, &len, stream)) != -1) {
+            loadStr = std::string(line);
+        }
+    });
+
+    return loadStr;
+}
+
 std::string funcToString(
   const std::shared_ptr<faabric::BatchExecuteRequest>& req)
 {

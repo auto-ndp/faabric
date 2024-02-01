@@ -76,6 +76,12 @@ void FaabricEndpointHandler::onRequest(
                 response.result(beast::http::status::internal_server_error);
                 response.body() = "FAILED: " + result.outputdata();
             }
+        } else if (msg->isloadrequest()) {
+            // Read the load from top command
+            SPDLOG_DEBUG("Processing load request");
+            std::string loadStr = faabric::util::getLoadAsString();
+            response.result(beast::http::status::ok);
+            response.body() = loadStr;     
         } else if (msg->isexecgraphrequest()) {
             SPDLOG_DEBUG("Processing execution graph request");
             faabric::scheduler::ExecGraph execGraph =
