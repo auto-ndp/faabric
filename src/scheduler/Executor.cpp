@@ -433,8 +433,10 @@ void Executor::threadPoolThread(std::stop_token st, int threadPoolIdx)
         }
     };
     if (threadPoolIdx == 0) {
+        SPDLOG_INFO("Thread pool thread {}:{} is the main thread", id, threadPoolIdx);
         std::unique_lock<std::shared_mutex> _lock(resetMutex);
         try {
+            SPDLOG_INFO("Resetting module");
             reset(boundMessage);
         } catch (...) {
             SPDLOG_ERROR("Caught exception when initialising module for {}",
@@ -463,9 +465,22 @@ void Executor::threadPoolThread(std::stop_token st, int threadPoolIdx)
 
         try {
             ZoneScopedNC("Dequeue task", 0x111111);
-            task = threadTaskQueues[threadPoolIdx].dequeue(conf.boundTimeout);
+            SPDLOG_DEBUG("Dequeueing task for thread {}:{} (timeout {}ms)",
+                         id,
+                         threadPoolIdx,
+                         conf.boundTimeout);
+
+            task = threadTaskQueues.at(threadPoolIdx).dequeue(conf.boundTimeout);
+            SPDLOG_DEBUG("Successfully dequeued task for thread {}:{}",
+                         id,
+                         threadPoolIdx);
+        } catch (std::bad_optional_access& e) {
+            SPDLOG_DEBUG("Bad optional access in thread {}:{}",
+                         id,
+                         threadPoolIdx);
+            continue;
         } catch (faabric::util::QueueTimeoutException& ex) {
-            SPDLOG_TRACE(
+            SPDLOG_DEBUG(
               "Thread {}:{} got no messages in timeout {}ms, looping",
               id,
               threadPoolIdx,
@@ -482,15 +497,16 @@ void Executor::threadPoolThread(std::stop_token st, int threadPoolIdx)
         }
 
         assert(task.req->messages_size() >= task.messageIndex + 1);
-        faabric::Message& msg =
-          task.req->mutable_messages()->at(task.messageIndex);
+        faabric::Message& msg = task.req->mutable_messages()->at(task.messageIndex);
 
         // Start dirty tracking if executing threads across hosts
         bool isSingleHost = task.req->singlehost();
-        bool isThreads =
-          task.req->type() == faabric::BatchExecuteRequest::THREADS;
+        bool isThreads = task.req->type() == faabric::BatchExecuteRequest::THREADS;
         bool doDirtyTracking = isThreads && !isSingleHost;
         if (doDirtyTracking) {
+            SPDLOG_DEBUG("Starting dirty tracking for thread {}:{}",
+                         id,
+                         threadPoolIdx);
             // If tracking is thread local, start here as it will happen for
             // each thread
             tracker->startThreadLocalTracking(getMemoryView());
@@ -499,11 +515,10 @@ void Executor::threadPoolThread(std::stop_token st, int threadPoolIdx)
         // Check ptp group
         std::shared_ptr<faabric::transport::PointToPointGroup> group = nullptr;
         if (msg.groupid() > 0) {
-            group =
-              faabric::transport::PointToPointGroup::getGroup(msg.groupid());
+            group = faabric::transport::PointToPointGroup::getGroup(msg.groupid());
         }
 
-        SPDLOG_TRACE("Thread {}:{} executing task {} ({}, thread={}, group={})",
+        SPDLOG_INFO("Thread {}:{} executing task {} ({}, thread={}, group={})",
                      id,
                      threadPoolIdx,
                      task.messageIndex,
@@ -512,11 +527,16 @@ void Executor::threadPoolThread(std::stop_token st, int threadPoolIdx)
                      msg.groupid());
 
         // Set up context
-        getScheduler().monitorStartedTasks.fetch_add(1,
-                                                     std::memory_order_acq_rel);
+        SPDLOG_INFO("Setting executor context for task {}:{}",
+                    id,
+                    threadPoolIdx);
+        getScheduler().monitorStartedTasks.fetch_add(1,std::memory_order_acq_rel);
         ExecutorContext::set(this, task.req, task.messageIndex);
 
         // Execute the task
+        SPDLOG_INFO("Executing task {}:{}",
+                    id,
+                    threadPoolIdx);
         int64_t msgTimestamp = msg.timestamp();
         int64_t nowTimestamp = faabric::util::getGlobalClock().epochMillis();
         int32_t returnValue;
