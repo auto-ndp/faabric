@@ -457,7 +457,7 @@ void Executor::threadPoolThread(std::stop_token st, int threadPoolIdx)
     // We terminate these threads by sending a shutdown message, but having this
     // check means they won't hang infinitely if destructed.
     while (!st.stop_requested()) {
-        SPDLOG_TRACE("Thread starting loop {}:{}", id, threadPoolIdx);
+        SPDLOG_DEBUG("Thread starting loop {}:{}", id, threadPoolIdx);
 
         ExecutorTask task;
 
@@ -478,6 +478,7 @@ void Executor::threadPoolThread(std::stop_token st, int threadPoolIdx)
         // will handle the clean-up
         if (task.messageIndex == POOL_SHUTDOWN) {
             SPDLOG_DEBUG("Killing thread pool thread {}:{}", id, threadPoolIdx);
+            st.
             return;
         }
 
@@ -585,7 +586,7 @@ void Executor::threadPoolThread(std::stop_token st, int threadPoolIdx)
         assert(oldTaskCount >= 0);
         bool isLastInBatch = oldTaskCount == 1;
 
-        SPDLOG_TRACE("Task {} finished by thread {}:{} ({} left)",
+        SPDLOG_INFO("[Faabric] Task {} finished by thread {}:{} ({} left)",
                      faabric::util::funcToString(msg, true),
                      id,
                      threadPoolIdx,
@@ -645,6 +646,7 @@ void Executor::threadPoolThread(std::stop_token st, int threadPoolIdx)
         // executor has been reset, otherwise the executor may not be reused for
         // a repeat invocation.
         if (isThreads) {
+            SPDLOG_INFO("Set result of the task");
             ZoneScopedN("Task set result");
             // Set non-final thread result
             if (isLastInBatch) {
@@ -662,6 +664,7 @@ void Executor::threadPoolThread(std::stop_token st, int threadPoolIdx)
         // the main function in a threaded application, in which case we
         // want to stop any tracking and delete the main thread snapshot
         if (!isThreads && isLastInBatch) {
+            SPDLOG_INFO("Not threads request and last in batch");
             // Stop tracking memory
             std::span<uint8_t> memView = getMemoryView();
             if (!memView.empty()) {
@@ -678,6 +681,7 @@ void Executor::threadPoolThread(std::stop_token st, int threadPoolIdx)
         // claim. Note that we have to release the claim _after_ resetting,
         // otherwise the executor won't be ready for reuse
         if (isLastInBatch) {
+            SPDLOG_INFO("Last in batch detected, resetting executor and releasing claim");
             // Threads skip the reset as they will be restored from their
             // respective snapshot on the next execution.
             if (isThreads || skippedExec) {
@@ -693,7 +697,7 @@ void Executor::threadPoolThread(std::stop_token st, int threadPoolIdx)
         }
 
         task = ExecutorTask();
-
+        SPDLOG_INFO("Fetched executor task");
         // Return this thread index to the pool available for scheduling
         {
             faabric::util::UniqueLock lock(threadsMutex);
@@ -710,8 +714,11 @@ void Executor::threadPoolThread(std::stop_token st, int threadPoolIdx)
         // try to schedule another function and be unable to reuse this
         // executor.
         ZoneScopedN("Task vacate slot");
+        SPDLOG_INFO("Vacating slot");
         sch.vacateSlot();
+        SPDLOG_INFO("[Executor] Slot vacated");
     }
+    SPDLOG_INFO("Calling soft shutdown");
     softShutdown();
 }
 

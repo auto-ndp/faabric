@@ -369,7 +369,13 @@ void Scheduler::addRegisteredHost(const std::string& host,
 void Scheduler::vacateSlot()
 {
     ZoneScopedNS("Vacate scheduler slot", 5);
-    thisHostUsedSlots.fetch_sub(1, std::memory_order_acq_rel);
+    SPDLOG_INFO("[Scheduler::vacateSlot() - Vacating slot");
+    try {
+        thisHostUsedSlots.fetch_sub(1, std::memory_order_acq_rel);
+        SPDLOG_INFO("[Scheduler::vacateSlot() - Slot vacated");
+    } catch (std::exception& ex) {
+        SPDLOG_ERROR("Caught exception vacating slot: {}", ex.what());
+    }
 }
 
 faabric::util::SchedulingDecision Scheduler::callFunctions(
