@@ -177,7 +177,7 @@ void FaabricEndpointHandler::onFunctionResult(
     SPDLOG_DEBUG("Worker thread {} sending response", gettid());
     ctx.sendFunction(std::move(response));
     SPDLOG_DEBUG("Worker thread {} response sent", gettid());
-    ctx.ioc.stop();
+    // We're done with this request
 }
 
 }

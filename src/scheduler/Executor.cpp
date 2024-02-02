@@ -457,7 +457,7 @@ void Executor::threadPoolThread(std::stop_token st, int threadPoolIdx)
     // We terminate these threads by sending a shutdown message, but having this
     // check means they won't hang infinitely if destructed.
     while (!st.stop_requested()) {
-        SPDLOG_DEBUG("Thread starting loop {}:{}", id, threadPoolIdx);
+        SPDLOG_INFO("Thread starting loop {}:{}", id, threadPoolIdx);
 
         ExecutorTask task;
 
@@ -478,7 +478,6 @@ void Executor::threadPoolThread(std::stop_token st, int threadPoolIdx)
         // will handle the clean-up
         if (task.messageIndex == POOL_SHUTDOWN) {
             SPDLOG_DEBUG("Killing thread pool thread {}:{}", id, threadPoolIdx);
-            st.
             return;
         }
 
