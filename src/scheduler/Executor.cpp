@@ -428,7 +428,11 @@ void Executor::threadPoolThread(std::stop_token st, int threadPoolIdx)
             if (isThreads) {
                 sch.setThreadResult(msg, 1, "", {});
             } else {
-                sch.setFunctionResult(msg);
+                try {
+                    sch.setFunctionResult(msg);
+                } catch (const std::exception& ex) {
+                    SPDLOG_ERROR("[Executor.cpp::threadPoolThread] Failed to set function result: {}", ex.what());
+                }
             }
         }
     };
@@ -677,7 +681,11 @@ void Executor::threadPoolThread(std::stop_token st, int threadPoolIdx)
         } else {
             ZoneScopedN("Task set result");
             // Set normal function result
-            sch.setFunctionResult(msg);
+            try {
+                sch.setFunctionResult(msg);
+            } catch (const std::exception& ex) {
+                SPDLOG_ERROR("Failed to set function result: {}", ex.what());
+            }
         }
         // If this is not a threads request and last in its batch, it may be
         // the main function in a threaded application, in which case we

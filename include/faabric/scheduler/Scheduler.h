@@ -277,7 +277,11 @@ class Scheduler
 
     inline void setFunctionResult(const faabric::Message& msg)
     {
-        setFunctionResult(std::make_unique<faabric::Message>(msg));
+      try {
+          setFunctionResult(std::make_unique<faabric::Message>(msg));
+      } catch (const std::exception& e) {
+          SPDLOG_ERROR("[Scheduler.h] Failed to set function result: {}", e.what());
+      }
     }
 
     faabric::Message getFunctionResult(unsigned int messageId,
