@@ -2,6 +2,7 @@
 #include <faabric/redis/Redis.h>
 #include <faabric/scheduler/ExecutorFactory.h>
 #include <faabric/scheduler/FunctionCallClient.h>
+#include <faabric/scheduler/FunctionCallServer.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/snapshot/SnapshotClient.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
@@ -1240,8 +1241,10 @@ void Scheduler::setFunctionResult(std::unique_ptr<faabric::Message> msg)
         if (it != localResults.end()) {
             it->second->setValue(std::move(msg));
         } else {
+            SPDLOG_ERROR("Result received for unknown message {}! Removing delta handler as a precaution", msg->id());
+            faabric::scheduler::FunctionCallServer::removeNdpDeltaHandler(msg->id());
             throw std::runtime_error(
-              "Got direct result, but promise is registered");
+              "Result received for unknown message " + std::to_string(msg->id()));
         }
         return;
     }

@@ -28,11 +28,13 @@ void FunctionCallServer::registerNdpDeltaHandler(
   int id,
   std::function<std::vector<uint8_t>()> handler)
 {
+    SPDLOG_DEBUG("Registering NDP delta handler for id {}", id);
     ndpDeltaHandlers.insertOrAssign(id, std::move(handler));
 }
 
 void FunctionCallServer::removeNdpDeltaHandler(int id)
 {
+    SPDLOG_DEBUG("Removing NDP delta handler for id {}", id);
     ndpDeltaHandlers.erase(id);
 }
 
@@ -74,6 +76,7 @@ std::unique_ptr<google::protobuf::Message> FunctionCallServer::doSyncRecv(
             return recvPendingMigrations(message.udata());
         }
         case faabric::scheduler::FunctionCalls::NdpDeltaRequest: {
+            SPDLOG_DEBUG("Received NDP delta request");
             return recvNdpDeltaRequest(message.udata());
         }
         default: {
@@ -141,7 +144,6 @@ void FunctionCallServer::recvDirectResult(std::span<const uint8_t> buffer)
     } catch (const std::exception& e) {
         SPDLOG_ERROR("Failed to set direct result: {}", e.what());
     }
-    scheduler.setFunctionResult(std::move(result));
 }
 
 std::unique_ptr<google::protobuf::Message>
@@ -155,7 +157,7 @@ FunctionCallServer::recvPendingMigrations(std::span<const uint8_t> buffer)
     scheduler.addPendingMigration(msgPtr);
 
     return std::make_unique<faabric::EmptyResponse>();
-    
+
 }
 
 std::unique_ptr<google::protobuf::Message>
