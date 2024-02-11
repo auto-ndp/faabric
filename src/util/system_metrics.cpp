@@ -1,33 +1,5 @@
-
-#include <cstdint>
-#include <string>
-#include <vector>
-#include <fstream>
-#include <sstream>
-#include <iostream>
-#include <stdexcept>
-#include <thread>
-#include <chrono>
-
+#include <faabric/util/system_metrics.h>
 namespace faabric::util {
-    struct UtilisationStats
-    {
-      double cpu_utilisation;
-      double ram_utilisation;
-      double load_average;
-    };
-
-    struct CPUStats
-    {
-      long totalCpuTime;
-      long idleCpuTime;
-    };
-
-    struct MemStats
-    {
-      uint64_t total;
-      uint64_t available;
-    };
 
     CPUStats getCPUUtilisation() {
         std::ifstream cpuinfo("/proc/stat");
@@ -88,7 +60,7 @@ namespace faabric::util {
     UtilisationStats getSystemUtilisation()
     {
         UtilisationStats stats; 
-        
+
         // Get initial figures
         CPUStats cpuStart = getCPUUtilisation();    
         std::this_thread::sleep_for(std::chrono::milliseconds(1));  
