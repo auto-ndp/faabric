@@ -31,5 +31,5 @@ namespace faabric::util {
 
     UtilisationStats getSystemUtilisation();
     CPUStats getCPUUtilisation();
-    MemStats getMemoryUtilisation();
+    double getMemoryUtilisation();
 }
