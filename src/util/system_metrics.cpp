@@ -2,7 +2,12 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-
+#include <fstream>
+#include <sstream>
+#include <iostream>
+#include <stdexcept>
+#include <thread>
+#include <chrono>
 
 namespace faabric::util {
     struct UtilisationStats
@@ -24,8 +29,7 @@ namespace faabric::util {
       uint64_t available;
     };
 
-    CPUStats getCPUStats() {
-        SPDLOG_INFO("[ndp_endpoint::getCPUUtilisation] Getting CPU utilisation");
+    CPUStats getCPUUtilisation() {
         std::ifstream cpuinfo("/proc/stat");
         std::string line;
         if (!cpuinfo.is_open()) {
@@ -84,13 +88,13 @@ namespace faabric::util {
     UtilisationStats getSystemUtilisation()
     {
         UtilisationStats stats; 
+        
         // Get initial figures
         CPUStats cpuStart = getCPUUtilisation();    
-        SPDLOG_DEBUG("Total CPU time: {}", cpuStart.totalCpuTime);
         std::this_thread::sleep_for(std::chrono::milliseconds(1));  
+
         // Get final figures
         CPUStats cpuEnd = getCPUUtilisation();
-        SPDLOG_DEBUG("Total CPU time after wait: {}", cpuEnd.totalCpuTime); 
         long cpuTimeDelta = cpuEnd.totalCpuTime - cpuStart.totalCpuTime;
         long idleTimeDelta = cpuEnd.idleCpuTime - cpuStart.idleCpuTime;
         double cpu_utilisation = 1.0 - (idleTimeDelta / (double) cpuTimeDelta); 
