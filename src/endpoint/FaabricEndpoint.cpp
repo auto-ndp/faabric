@@ -78,7 +78,27 @@ class HttpConnection : public std::enable_shared_from_this<HttpConnection>
                                 stream.get_executor(),
                                 std::bind_front(&HttpConnection::sendResponse,
                                                 this->shared_from_this()) };
-        handler->onRequest(std::move(hrc), std::move(msg));
+        try {
+          handler->onRequest(std::move(hrc), std::move(msg));
+        } catch (std::exception& e) {
+          SPDLOG_ERROR("Error handling HTTP request: {}", e.what());
+          faabric::util::BeastHttpResponse response;
+          response.result(beast::http::status::internal_server_error);
+          response.body() = e.what();
+          sendResponse(std::move(response));
+        } catch (boost::system::system_error& e) {
+          SPDLOG_ERROR("Error handling HTTP request: {}", e.what());
+          faabric::util::BeastHttpResponse response;
+          response.result(beast::http::status::internal_server_error);
+          response.body() = e.what();
+          sendResponse(std::move(response));
+        } catch(...) {
+          SPDLOG_ERROR("Error handling HTTP request: unknown exception");
+          faabric::util::BeastHttpResponse response;
+          response.result(beast::http::status::internal_server_error);
+          response.body() = "Unknown error";
+          sendResponse(std::move(response));
+        }
     }
 
     void onRead(beast::error_code ec, size_t bytesTransferred)
