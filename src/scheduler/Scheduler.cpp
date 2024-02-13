@@ -103,6 +103,8 @@ Scheduler::Scheduler()
 
 Scheduler::~Scheduler()
 {
+
+    shutdown();
     if (!_isShutdown) {
         SPDLOG_ERROR("Destructing scheduler without shutting down first");
     }

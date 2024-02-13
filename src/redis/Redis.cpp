@@ -678,7 +678,7 @@ UniqueRedisReply Redis::dequeueBase(const std::string& queueName, int timeoutMs)
     // Check if we got anything
     if (reply == nullptr || reply->type == REDIS_REPLY_NIL) {
         std::string msg =
-          fmt::format("No response from Redis dequeue in {}ms for queue {}",
+          fmt::format("d from Redis dequeue in {}ms for queue {}",
                       timeoutMs,
                       queueName);
         throw RedisNoResponseException(msg);
