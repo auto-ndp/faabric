@@ -72,6 +72,12 @@ message FunctionStatusResponse {
     FunctionStatus status = 1;
 }
 
+message NodeUtilisationResponse {
+    double cpu_utilisation = 1;
+    double mem_utilisation = 2;
+    double load_avg = 3;
+}
+
 // ---------------------------------------------
 // MPI
 // ---------------------------------------------
@@ -177,6 +183,7 @@ message Message {
     optional bool forbidNdp = 95;
     repeated int32 extraArguments = 96;
     string ndpCallObjectName = 97;
+    optional bool isMetricsRequest = 98;
 }
 
 message DirectResultTransmission {
