@@ -89,8 +89,22 @@ void FaabricEndpointHandler::onRequest(
             response.result(beast::http::status::ok);
             response.body() = std::string("Flush sent");
         } else {
-            executeFunction(
-              std::move(ctx), std::move(response), std::move(msg));
+            try
+            {
+                executeFunction(std::move(ctx), std::move(response), std::move(msg));
+            }
+            catch (const std::exception& e)
+            {
+                SPDLOG_ERROR("Caught exception in FaabricEndpointHandler::onRequest: {}", e.what());
+                response.result(beast::http::status::internal_server_error);
+                response.body() = std::string("Caught exception: ") + e.what();
+                ctx.sendFunction(std::move(response));
+            } catch (faabric::util::FaabricException& e) {
+                SPDLOG_ERROR("Caught FaabricException in FaabricEndpointHandler::onRequest: {}", e.what());
+                response.result(beast::http::status::internal_server_error);
+                response.body() = std::string("Caught exception: ") + e.what();
+                ctx.sendFunction(std::move(response));
+            }
             return;
         }
     }

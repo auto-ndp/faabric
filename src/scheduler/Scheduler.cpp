@@ -614,6 +614,8 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
                 lastHost = h;
                 // Work out resources on the remote host
                 SPDLOG_DEBUG("Checkig unregeistered {} for resources", h);
+                SPDLOG_DEBUG("Remaining: {}", remainder);
+
                 faabric::HostResources r = getHostResources(h);
                 int available = r.slots() - r.usedslots();
 
