@@ -530,7 +530,9 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
 
         // Make sure we don't execute the wrong kind (storage/compute) of
         // call locally
-        if (hostKindDifferent) {
+        if (hostKindDifferent) { 
+            SPDLOG_DEBUG("Host kind different, not scheduling {} locally",
+                         funcStr);
             nLocally = 0;
         }
 
@@ -544,14 +546,18 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
         // If some are left, we need to distribute.
         // First try and do so on already registered hosts.
         int remainder = nMessages - nLocally;
-
         if (!hostKindDifferent && remainder > 0) {
+            SPDLOG_DEBUG("Scheduling {}/{} of {} on registered hosts",
+                         remainder,
+                         nMessages,
+                         funcStr);
             const std::set<std::string>& thisRegisteredHosts =
               getFunctionRegisteredHosts(
                 firstMsg.user(), firstMsg.function(), false);
 
             for (const auto& h : thisRegisteredHosts) {
                 // Work out resources on the remote host
+                SPDLOG_DEBUG("Checking {} for resources", h);
                 faabric::HostResources r = getHostResources(h);
                 int available = r.slots() - r.usedslots();
 
@@ -607,6 +613,7 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
 
                 lastHost = h;
                 // Work out resources on the remote host
+                SPDLOG_DEBUG("Checkig unregeistered {} for resources", h);
                 faabric::HostResources r = getHostResources(h);
                 int available = r.slots() - r.usedslots();
 
