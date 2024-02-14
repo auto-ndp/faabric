@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
     "editor.tokenColorCustomizations": {
         "[*Light*]": {
             "textMateRules": [
@@ -40,5 +41,9 @@
                 }
             }
         ]
+=======
+    "files.associations": {
+        "array": "cpp"
+>>>>>>> f2f01849eae98603aa3f1223f9af265743b91e5d
     }
 }
