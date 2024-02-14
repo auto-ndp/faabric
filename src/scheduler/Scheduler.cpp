@@ -440,7 +440,7 @@ faabric::util::SchedulingDecision Scheduler::makeSchedulingDecision(
 }
 
 faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
-  std::shared_ptr<faabric::BatchExecuteRequest> req
+  std::shared_ptr<faabric::BatchExecuteRequest> req,
   faabric::util::SchedulingTopologyHint topologyHint)
 {
     ZoneScopedNS("Scheduler::makeSchedulingDecision", 5);
