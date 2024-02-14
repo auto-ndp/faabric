@@ -554,7 +554,7 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
             
             FaasmDefaultPolicy policy;
             const std::set<std::string>& thisRegisteredHosts = getFunctionRegisteredHosts(firstMsg.user(), firstMsg.function(), false);
-            std::vector<std::string> balanced_order = policy.dispatch(thisRegisteredHosts, remainder);
+            std::vector<std::string> balanced_order = policy.dispatch(thisRegisteredHosts, remainder, this); // Messy DI to get access to methods
 
             remainder -= balanced_order.size();
             for (const auto& h : balanced_order) {
