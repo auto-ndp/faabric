@@ -618,12 +618,13 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
 
                 faabric::HostResources r = getHostResources(h);
                 int available = r.slots() - r.usedslots();
-
                 // We need to floor at zero here in case the remote host is
                 // overloaded, in which case its used slots will be greater than
                 // its available slots.
                 available = std::max<int>(0, available);
                 int nOnThisHost = std::min(available, remainder);
+
+                SPDLOG_DEBUG("Unregisted Host Available Slots: {}, nOnThisHost: {}", available, nOnThisHost);
 
                 if (topologyHint ==
                       faabric::util::SchedulingTopologyHint::NEVER_ALONE &&
@@ -631,7 +632,7 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
                     continue;
                 }
 
-                SPDLOG_TRACE("Scheduling {}/{} of {} on {} (unregistered)",
+                SPDLOG_DEBUG("Scheduling {}/{} of {} on {} (unregistered)",
                              nOnThisHost,
                              nMessages,
                              funcStr,

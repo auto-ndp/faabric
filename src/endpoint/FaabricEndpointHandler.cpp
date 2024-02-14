@@ -189,7 +189,7 @@ void FaabricEndpointHandler::onFunctionResult(
 
     response.body() = result.outputdata();
     SPDLOG_DEBUG("Worker thread {} sending response", gettid());
-    ctx.sendFunction(std::move(response));
+    return ctx.sendFunction(std::move(response));
     SPDLOG_DEBUG("Worker thread {} response sent", gettid());
     // We're done with this request
 }
