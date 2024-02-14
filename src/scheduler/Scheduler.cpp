@@ -440,7 +440,7 @@ faabric::util::SchedulingDecision Scheduler::makeSchedulingDecision(
 }
 
 faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
-  std::shared_ptr<faabric::BatchExecuteRequest> req,
+  std::shared_ptr<faabric::BatchExecuteRequest> req
   faabric::util::SchedulingTopologyHint topologyHint)
 {
     ZoneScopedNS("Scheduler::makeSchedulingDecision", 5);
@@ -550,43 +550,14 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
         int remainder = nMessages - nLocally;
         if (!hostKindDifferent && remainder > 0) {
             SPDLOG_DEBUG("Scheduling {}/{} of {} on registered hosts", remainder, nMessages, funcStr);
-
+            
+            FaasmDefaultPolicy policy;
             const std::set<std::string>& thisRegisteredHosts = getFunctionRegisteredHosts(firstMsg.user(), firstMsg.function(), false);
+            std::vector<std::string> balanced_order = policy.dispatch(thisRegisteredHosts, remainder);
 
-            for (const auto& h : thisRegisteredHosts) {
-                // Work out resources on the remote host
-                SPDLOG_DEBUG("Checking {} for resources", h);
-                faabric::HostResources r = getHostResources(h);
-                int available = r.slots() - r.usedslots();
-
-                // We need to floor at zero here in case the remote host is
-                // overloaded, in which case its used slots will be greater than
-                // its available slots.
-                available = std::max<int>(0, available);
-                int nOnThisHost = std::min<int>(available, remainder);
-
-                // Under the NEVER_ALONE topology hint, we never choose a host
-                // unless we can schedule at least two requests in it.
-                if (topologyHint ==
-                      faabric::util::SchedulingTopologyHint::NEVER_ALONE &&
-                    nOnThisHost < 2) {
-                    continue;
-                }
-
-                SPDLOG_TRACE("Scheduling {}/{} of {} on {} (registered)",
-                             nOnThisHost,
-                             nMessages,
-                             funcStr,
-                             h);
-
-                for (int i = 0; i < nOnThisHost; i++) {
-                    hosts.push_back(h);
-                }
-
-                remainder -= nOnThisHost;
-                if (remainder <= 0) {
-                    break;
-                }
+            remainder -= balanced_order.size();
+            for (const auto& h : balanced_order) {
+                hosts.push_back(h);
             }
         }
 
