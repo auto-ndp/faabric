@@ -1,7 +1,7 @@
 #include <faabric/loadbalance/LoadBalancePolicy.h>
 #include <stdexcept>
 
-std::vector<std::string> FaasmDefaultPolicy::dispatch(const std::set<std::string>& warm_faaslets, int number_of_messages, faabric::scheduler::Scheduler& scheduler)
+std::vector<std::string> FaasmDefaultPolicy::dispatch(const std::set<std::string>& warm_faaslets, int number_of_messages, const faabric::scheduler::Scheduler& scheduler)
 {
     std::vector<std::string> hosts_delta;
     hosts_delta.reserve(number_of_messages);
