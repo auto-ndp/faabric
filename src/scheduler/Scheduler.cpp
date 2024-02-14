@@ -307,6 +307,7 @@ int Scheduler::reapStaleExecutors()
                 req.set_user(user);
                 req.set_function(function);
 
+                SPDLOG_DEBUG("Unregistering {} from {}", key, thisHost);
                 getFunctionCallClient(masterHost)->unregister(req);
             }
 
@@ -407,6 +408,7 @@ faabric::util::SchedulingDecision Scheduler::callFunctions(
         SPDLOG_DEBUG("Forwarding {} back to master {}", funcStr, masterHost);
 
         ZoneScopedN("Scheduler::callFunctions forward to master");
+        SPDLOG_DEBUG("Forwarding {} to master {}", funcStr, masterHost);
         getFunctionCallClient(masterHost)->executeFunctions(req);
         SchedulingDecision decision(firstMsg.appid(), firstMsg.groupid());
         decision.returnHost = masterHost;
@@ -989,6 +991,7 @@ faabric::util::SchedulingDecision Scheduler::doCallFunctions(
             }
 
             // Dispatch the calls
+            SPDLOG_DEBUG("Dispatching {} to {}", funcStr, host);
             getFunctionCallClient(host)->executeFunctions(hostRequest);
         }
     }
@@ -1207,6 +1210,7 @@ void Scheduler::broadcastFlush()
     allHosts.erase(thisHost);
 
     // Dispatch flush message to all other hosts
+    SPDLOG_DEBUG("Broadcasting flush to {} hosts", allHosts.size());
     for (auto& otherHost : allHosts) {
         getFunctionCallClient(otherHost)->sendFlush();
     }
@@ -1263,6 +1267,7 @@ void Scheduler::setFunctionResult(std::unique_ptr<faabric::Message> msg)
     if (!directResultHost.empty()) {
         ZoneScopedN("Direct result send");
         faabric::util::FullLock lock(mx);
+        SPDLOG_DEBUG("Sending direct result for {} to {}", msg->id(), directResultHost);
         auto fc = getFunctionCallClient(directResultHost);
         lock.unlock();
         {
@@ -1650,7 +1655,7 @@ void Scheduler::setThisHostResources(faabric::HostResources& res)
 
 faabric::HostResources Scheduler::getHostResources(const std::string& host)
 {
-    SPDLOG_TRACE("Requesting resources from {}", host);
+    SPDLOG_DEBUG("Requesting resources from {}", host);
     return getFunctionCallClient(host)->getResources();
 }
 
@@ -1831,6 +1836,7 @@ void Scheduler::broadcastPendingMigrations(
     registeredHosts.erase(thisHost);
 
     // Send pending migrations to all involved hosts
+    SPDLOG_DEUBG("Broadcasting pending migrations for app {}", msg.appid());
     for (auto& otherHost : thisRegisteredHosts) {
         getFunctionCallClient(otherHost)->sendPendingMigrations(
           pendingMigrations);
