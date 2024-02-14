@@ -53,7 +53,6 @@ struct MessageRecord final
     std::string pythonFunction;
     std::string cmdline;
     bool forbidNdp = false;
-    bool isMetricsRequest = false;
 
     MessageRecord() = default;
     MessageRecord(const faabric::Message& msg)
@@ -64,8 +63,7 @@ struct MessageRecord final
       , pythonUser(msg.pythonuser())
       , pythonFunction(msg.pythonfunction())
       , cmdline(msg.cmdline())
-      , forbidNdp(msg.forbidndp()),
-      , isMetricsRequest(msg.ismetricsrequest())
+      , forbidNdp(msg.forbidndp())
     {
     }
     ~MessageRecord() = default;

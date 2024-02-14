@@ -183,7 +183,6 @@ message Message {
     optional bool forbidNdp = 95;
     repeated int32 extraArguments = 96;
     string ndpCallObjectName = 97;
-    optional bool isMetricsRequest = 98;
 }
 
 message DirectResultTransmission {

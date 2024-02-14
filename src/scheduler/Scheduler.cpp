@@ -549,13 +549,9 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
         // First try and do so on already registered hosts.
         int remainder = nMessages - nLocally;
         if (!hostKindDifferent && remainder > 0) {
-            SPDLOG_DEBUG("Scheduling {}/{} of {} on registered hosts",
-                         remainder,
-                         nMessages,
-                         funcStr);
-            const std::set<std::string>& thisRegisteredHosts =
-              getFunctionRegisteredHosts(
-                firstMsg.user(), firstMsg.function(), false);
+            SPDLOG_DEBUG("Scheduling {}/{} of {} on registered hosts", remainder, nMessages, funcStr);
+
+            const std::set<std::string>& thisRegisteredHosts = getFunctionRegisteredHosts(firstMsg.user(), firstMsg.function(), false);
 
             for (const auto& h : thisRegisteredHosts) {
                 // Work out resources on the remote host
