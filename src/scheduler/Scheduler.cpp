@@ -1836,7 +1836,7 @@ void Scheduler::broadcastPendingMigrations(
     registeredHosts.erase(thisHost);
 
     // Send pending migrations to all involved hosts
-    SPDLOG_DEUBG("Broadcasting pending migrations for app {}", msg.appid());
+    SPDLOG_DEBUG("Broadcasting pending migrations for app {}", msg.appid());
     for (auto& otherHost : thisRegisteredHosts) {
         getFunctionCallClient(otherHost)->sendPendingMigrations(
           pendingMigrations);
