@@ -1,7 +1,7 @@
 #include <faabric/loadbalance/LoadBalancePolicy.h>
 #include <stdexcept>
 
-std::set<std::string> LeastLoadAveragePolicy::dispatch(std::set<std::string> hosts, std::vector<faabric::HostResources> host_resources)
+std::map<std::string, faabric::HostResources> LeastLoadAveragePolicy::dispatch(std::map<std::string, faabric::HostResources> host_resources)
 {
     throw std::runtime_error("LeastLoadAveragePolicy::dispatch not implemented");
 }

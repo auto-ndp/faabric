@@ -582,7 +582,7 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
                              funcStr,
                              h);
                 for (int i = 0; i < nOnThisHost; i++) {
-                    hosts.push_back(h);
+                    hosts.push_back(host);
                 }
                 remainder -= nOnThisHost;
                 if (remainder <= 0) {
