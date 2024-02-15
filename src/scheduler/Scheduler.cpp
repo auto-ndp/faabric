@@ -21,6 +21,8 @@
 #include <faabric/util/testing.h>
 #include <faabric/util/timing.h>
 
+#include <faabric/loadbalance/LoadBalancePolicy.h>
+
 #include <sys/eventfd.h>
 #include <sys/file.h>
 #include <sys/syscall.h>
@@ -99,8 +101,6 @@ Scheduler::Scheduler()
         }
         this->updateMonitoring();
     }
-    
-    policy = FaasmDefaultPolicy();
 }
 
 Scheduler::~Scheduler()
@@ -1023,6 +1023,7 @@ faabric::util::SchedulingDecision Scheduler::doCallFunctions(
 
 std::set<std::string> Scheduler::applyLoadBalancedPolicy(std::set<std::string> hosts)
 {
+    FaasmDefaultPolicy policy;
     std::vector<std::pair<std::string, faabric::HostResources>> host_resource_pairs;
 
     // Fetch resources for each host to inform decision
