@@ -570,7 +570,7 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
                 SPDLOG_INFO("Host: {}, Slots: {}, UsedSlots: {}", host, resources.slots(), resources.usedslots());
                 
                 // Work out resources on the remote host
-                const faabric::HostResources r = getHostResources(h);
+                const faabric::HostResources r = getHostResources(host);
                 int available = r.slots() - r.usedslots();
                 // We need to floor at zero here in case the remote host is
                 // overloaded, in which case its used slots will be greater than
