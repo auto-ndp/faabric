@@ -549,7 +549,7 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
               getFunctionRegisteredHosts(
                 firstMsg.user(), firstMsg.function(), false);
 
-            thisRegisteredHosts = applyLoadBalancedPolicy(thisRegisteredHosts, firstMsg, topologyHint);
+            thisRegisteredHosts = applyLoadBalancedPolicy(thisRegisteredHosts);
 
             // Loop through the ordered registered hosts and schedule as many as possible on each
             for (const auto& h : ordered_registered_hosts) {
@@ -601,7 +601,7 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
                   getUnregisteredHosts(firstMsg.user(), firstMsg.function());
             }
 
-            unregisteredHosts = applyLoadBalancedPolicy(unregisteredHosts, firstMsg, topologyHint);            
+            unregisteredHosts = applyLoadBalancedPolicy(unregisteredHosts);            
 
             for (const auto& h : unregisteredHosts) {
                 // Skip if this host
@@ -1019,7 +1019,7 @@ faabric::util::SchedulingDecision Scheduler::doCallFunctions(
     return decision;
 }
 
-std::set<std::string> Scheduler::applyLoadBalancedPolicy(const std::set<std::string>& hosts, const faabric::Message& msg, faabric::util::SchedulingTopologyHint topologyHint)
+std::set<std::string> Scheduler::applyLoadBalancedPolicy(std::set<std::string> hosts)
 {
     std::vector<std::pair<std::string, faabric::HostResources>> host_resource_pairs;
 

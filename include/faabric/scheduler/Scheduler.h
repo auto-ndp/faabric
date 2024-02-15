@@ -467,10 +467,7 @@ class Scheduler
       faabric::util::SchedulingTopologyHint topologyHint,
       std::shared_ptr<void> extraData);
 
-    std::set<std::string> applyLoadBalancedPolicy(
-      const std::set<std::string>& hosts,
-      const faabric::Message& msg,
-      faabric::util::SchedulingTopologyHint topologyHint);
+    std::set<std::string> applyLoadBalancedPolicy(std::set<std::string> hosts);
 
     std::shared_ptr<Executor> claimExecutor(const faabric::MessageInBatch& msg);
 
