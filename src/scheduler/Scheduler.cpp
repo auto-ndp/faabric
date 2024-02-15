@@ -561,7 +561,7 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
             FaasmDefaultPolicy policy;
             policy.dispatch(hosts_map);
 
-            for (const auto& [host, resources] : balancedRegisteredHosts) {
+            for (const auto& [host, resources] : hosts_map) {
                 // Work out resources on the remote host
                 int available = resources.slots() - resources.usedslots();
                 // We need to floor at zero here in case the remote host is
@@ -580,7 +580,7 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
                              nOnThisHost,
                              nMessages,
                              funcStr,
-                             h);
+                             host);
                 for (int i = 0; i < nOnThisHost; i++) {
                     hosts.push_back(host);
                 }
