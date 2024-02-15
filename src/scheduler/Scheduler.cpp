@@ -551,14 +551,14 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
         int remainder = nMessages - nLocally;
         if (!hostKindDifferent && remainder > 0) {
             SPDLOG_DEBUG("Scheduling {}/{} of {} on registered hosts", remainder, nMessages, funcStr);
-            
-            bool use_faasm_default_policy = true;
+
             std::map <std::string, faabric::HostResources> hosts_map;
             for (std::string h : getFunctionRegisteredHosts(firstMsg.user(), firstMsg.function(), false)) {
                 hosts_map[h] = getHostResources(h);
             }
 
-            MostSlotsPolicy policy;
+            // MostSlotsPolicy policy;
+            FaasmDefaultPolicy policy;
             hosts_map = policy.dispatch(hosts_map);
 
             for (const auto& [host, resources] : hosts_map) {
