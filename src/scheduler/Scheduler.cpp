@@ -550,22 +550,7 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
               getFunctionRegisteredHosts(
                 firstMsg.user(), firstMsg.function(), false);
 
-            // Get all the pairings of host and resources
-            std::vector<std::pair<std::string, faabric::HostResources>> host_resource_pairs;
-            for (const auto& h : thisRegisteredHosts)
-            {
-                faabric::HostResources r = getHostResources(h);
-                host_resource_pairs.push_back(std::make_pair(h, r));
-            }
-
-            // Apply policy ordering
-            policy.dispatch(host_resource_pairs);
-        
-            std::vector<std::string> ordered_registered_hosts;
-            for (const auto& [h, r] : host_resource_pairs)
-            {
-                ordered_registered_hosts.push_back(h);
-            }
+            thisRegisteredHosts = applyLoadBalancedPolicy(thisRegisteredHosts, firstMsg, topologyHint);
 
             // Loop through the ordered registered hosts and schedule as many as possible on each
             for (const auto& h : ordered_registered_hosts) {
@@ -616,6 +601,8 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
                 unregisteredHosts =
                   getUnregisteredHosts(firstMsg.user(), firstMsg.function());
             }
+
+            unregisteredHosts = applyLoadBalancedPolicy(unregisteredHosts, firstMsg, topologyHint);            
 
             for (const auto& h : unregisteredHosts) {
                 // Skip if this host
@@ -1033,6 +1020,29 @@ faabric::util::SchedulingDecision Scheduler::doCallFunctions(
     return decision;
 }
 
+std::set<std::string> Scheduler::applyLoadBalancedPolicy(const std::set<std::string>& hosts, const faabric::Message& msg, faabric::util::SchedulingTopologyHint topologyHint)
+{
+    std::vector<std::pair<std::string, faabric::HostResources>> host_resource_pairs;
+
+    // Fetch resources for each host to inform decision
+    for (const auto& h : hosts)
+    {
+        faabric::HostResources r = getHostResources(h);
+        host_resource_pairs.push_back(std::make_pair(h, r));
+    }
+
+    // Apply ordering to the pairs
+    this->policy.dispatch(host_resource_pairs);
+    
+    // Extract the ordered hosts
+    std::set<std::string> ordered_hosts;
+    for (const auto& [h, r] : host_resource_pairs)
+    {
+        ordered_hosts.insert(h);
+    }
+
+    return ordered_hosts;
+}
 std::vector<std::string> Scheduler::getUnregisteredHosts(
   const std::string& user,
   const std::string& function,

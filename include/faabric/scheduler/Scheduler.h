@@ -466,11 +466,18 @@ class Scheduler
       faabric::util::SchedulingTopologyHint topologyHint,
       std::shared_ptr<void> extraData);
 
+    std::set<std::string> applyLoadBalancedPolicy(
+      const std::set<std::string>& hosts,
+      const faabric::Message& msg,
+      faabric::util::SchedulingTopologyHint topologyHint);
+
     std::shared_ptr<Executor> claimExecutor(const faabric::MessageInBatch& msg);
 
     std::vector<std::string> getUnregisteredHosts(const std::string& user,
                                                   const std::string& function,
                                                   bool noCache = false);
+
+    FaasmDefaultPolicy policy;
 
     // ---- Accounting and debugging ----
     std::vector<faabric::Message> recordedMessagesAll;
