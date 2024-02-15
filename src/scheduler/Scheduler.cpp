@@ -551,10 +551,10 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
               getFunctionRegisteredHosts(
                 firstMsg.user(), firstMsg.function(), false);
 
-            thisRegisteredHosts = applyLoadBalancedPolicy(thisRegisteredHosts);
+            std::set<std::string> balanced_registered_hosts = applyLoadBalancedPolicy(thisRegisteredHosts);
 
             // Loop through the ordered registered hosts and schedule as many as possible on each
-            for (const auto& h : ordered_registered_hosts) {
+            for (const auto& h : balanced_registered_hosts) {
                 // Work out resources on the remote host
                 faabric::HostResources r = getHostResources(h);
                 int available = r.slots() - r.usedslots();
@@ -603,9 +603,9 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
                   getUnregisteredHosts(firstMsg.user(), firstMsg.function());
             }
 
-            unregisteredHosts = applyLoadBalancedPolicy(unregisteredHosts);            
+            std::set<std::string> balanced_unregistered_hosts = applyLoadBalancedPolicy(unregisteredHosts);            
 
-            for (const auto& h : unregisteredHosts) {
+            for (const auto& h : balanced_unregistered_hosts) {
                 // Skip if this host
                 if (h == thisHost) {
                     continue;

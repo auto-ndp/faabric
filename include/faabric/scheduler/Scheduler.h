@@ -474,8 +474,6 @@ class Scheduler
                                                   const std::string& function,
                                                   bool noCache = false);
 
-    FaasmDefaultPolicy policy;
-
     // ---- Accounting and debugging ----
     std::vector<faabric::Message> recordedMessagesAll;
     std::vector<faabric::Message> recordedMessagesLocal;
