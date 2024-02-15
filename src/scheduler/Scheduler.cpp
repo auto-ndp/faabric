@@ -562,7 +562,8 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
             SPDLOG_DEBUG("Reordering registered hosts based on LoadBalancePolicy");
             std::map<std::string, faabric::HostResources> sorted_map = policy.dispatch(hosts_map);
             SPDLOG_DEBUG("Reordered registered hosts based on LoadBalancePolicy");
-
+            print("Registered Hosts map size: {}", sorted_map.size());
+            
             for (const auto& [host, resources] : sorted_map) {
                 SPDLOG_INFO("Host: {}, Slots: {}, UsedSlots: {}", host, resources.slots(), resources.usedslots());
                 // Work out resources on the remote host
