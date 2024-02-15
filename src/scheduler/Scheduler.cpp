@@ -559,6 +559,7 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
             }
 
             // MostSlotsPolicy policy;
+            SPDLOG_DEBUG("Reordering registered hosts based on LoadBalancePolicy");
             hosts_map = policy.dispatch(hosts_map);
 
             for (const auto& [host, resources] : hosts_map) {
