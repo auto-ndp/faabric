@@ -562,7 +562,7 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
             SPDLOG_DEBUG("Reordering registered hosts based on LoadBalancePolicy");
             policy.dispatch(host_resources_pairs);
             SPDLOG_DEBUG("Reordered registered hosts based on LoadBalancePolicy");
-            print("Registered Hosts map size: {}", host_resources_pairs.size());
+            SPDLOG_DEBUG("Registered Hosts map size: {}", host_resources_pairs.size());
 
             for (const auto& [host, resources] : host_resources_pairs) {
                 SPDLOG_INFO("Host: {}, Slots: {}, UsedSlots: {}", host, resources.slots(), resources.usedslots());
