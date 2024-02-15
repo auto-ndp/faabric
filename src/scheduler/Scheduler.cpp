@@ -603,6 +603,8 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
                   getUnregisteredHosts(firstMsg.user(), firstMsg.function());
             }
 
+            // Convert unregistered hosts to a set
+
             std::set<std::string> balanced_unregistered_hosts = applyLoadBalancedPolicy(unregisteredHosts);            
 
             for (const auto& h : balanced_unregistered_hosts) {
@@ -1021,7 +1023,7 @@ faabric::util::SchedulingDecision Scheduler::doCallFunctions(
     return decision;
 }
 
-std::set<std::string> Scheduler::applyLoadBalancedPolicy(std::set<std::string> hosts)
+std::set<std::string> Scheduler::applyLoadBalancedPolicy(std::vector<std::string> hosts)
 {
     FaasmDefaultPolicy policy;
     std::vector<std::pair<std::string, faabric::HostResources>> host_resource_pairs;
@@ -1034,7 +1036,7 @@ std::set<std::string> Scheduler::applyLoadBalancedPolicy(std::set<std::string> h
     }
 
     // Apply ordering to the pairs
-    this->policy.dispatch(host_resource_pairs);
+    thispolicy.dispatch(host_resource_pairs);
     
     // Extract the ordered hosts
     std::set<std::string> ordered_hosts;
