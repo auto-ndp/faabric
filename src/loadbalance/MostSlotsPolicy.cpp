@@ -1,7 +1,7 @@
 #include <faabric/loadbalance/LoadBalancePolicy.h>
 #include <stdexcept>
 
-std::vector<std::string> MostSlotsPolicy::dispatch(const std::set<std::string>& warm_faaslets, int number_of_messages, const faabric::scheduler::Scheduler& scheduler)
+std::set<std::string> MostSlotsPolicy::dispatch(std::set<std::string> hosts, std::vector<faabric::HostResources> host_resources)
 {
     throw std::runtime_error("MostSlotsPolicy::dispatch not implemented");
 }

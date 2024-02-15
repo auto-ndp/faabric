@@ -8,23 +8,23 @@
 class LoadBalancePolicy
 {
     public:
-        virtual std::vector<std::string> dispatch(const std::set<std::string>& warm_faaslets, int number_of_messages, const faabric::scheduler::Scheduler& scheduler) = 0;
+        virtual std::set<std::string> dispatch(std::set<std::string> hosts, std::vector<faabric::HostResources> host_resources) = 0;
 };
 
 class FaasmDefaultPolicy : public LoadBalancePolicy
 {
     public:
-        std::vector<std::string> dispatch(const std::set<std::string>& warm_faaslets, int number_of_messages, const faabric::scheduler::Scheduler& scheduler) override;
+        std::set<std::string> dispatch(std::set<std::string> hosts, std::vector<faabric::HostResources> host_resources) override;
 };
 
 class LeastLoadAveragePolicy : public LoadBalancePolicy
 {
     public:
-        std::vector<std::string> dispatch(const std::set<std::string>& warm_faaslets, int number_of_messages, const faabric::scheduler::Scheduler& scheduler) override;
+        std::set<std::string> dispatch(std::set<std::string> hosts, std::vector<faabric::HostResources> host_resources) override;
 };
 
 class MostSlotsPolicy : public LoadBalancePolicy
 {
     public:
-        std::vector<std::string> dispatch(const std::set<std::string>& warm_faaslets, int number_of_messages, const faabric::scheduler::Scheduler& scheduler) override;
+        std::set<std::string> dispatch(std::set<std::string> hosts, std::vector<faabric::HostResources> host_resources) override;
 };

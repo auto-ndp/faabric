@@ -552,13 +552,46 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
         if (!hostKindDifferent && remainder > 0) {
             SPDLOG_DEBUG("Scheduling {}/{} of {} on registered hosts", remainder, nMessages, funcStr);
             
-            FaasmDefaultPolicy policy;
+            bool use_faasm_default_policy = true;
             const std::set<std::string>& thisRegisteredHosts = getFunctionRegisteredHosts(firstMsg.user(), firstMsg.function(), false);
-            std::vector<std::string> balanced_order = policy.dispatch(thisRegisteredHosts, remainder, *this); // Messy DI to get access to methods
 
-            remainder -= balanced_order.size();
-            for (const auto& h : balanced_order) {
-                hosts.push_back(h);
+            std::vector<faabric::HostResources> hostResources;
+            for (std::string h : thisRegisteredHosts) {
+                hostResources.push_back(getHostResources(h));
+            }
+
+            // Reorder thisRegistered based on policy selected
+            FaasmDefaultPolicy policy;
+            std::set<std::sting> balancedRegisteredHosts = policy.dispatch(thisRegisteredHosts, hostResources);
+
+            for (const auto& h : balancedRegisteredHosts) {
+                // Work out resources on the remote host
+                faabric::HostResources r = getHostResources(h);
+                int available = r.slots() - r.usedslots();
+                // We need to floor at zero here in case the remote host is
+                // overloaded, in which case its used slots will be greater than
+                // its available slots.
+                available = std::max<int>(0, available);
+                int nOnThisHost = std::min<int>(available, remainder);
+                // Under the NEVER_ALONE topology hint, we never choose a host
+                // unless we can schedule at least two requests in it.
+                if (topologyHint ==
+                      faabric::util::SchedulingTopologyHint::NEVER_ALONE &&
+                    nOnThisHost < 2) {
+                    continue;
+                }
+                SPDLOG_TRACE("Scheduling {}/{} of {} on {} (registered)",
+                             nOnThisHost,
+                             nMessages,
+                             funcStr,
+                             h);
+                for (int i = 0; i < nOnThisHost; i++) {
+                    hosts.push_back(h);
+                }
+                remainder -= nOnThisHost;
+                if (remainder <= 0) {
+                    break;
+                }
             }
         }
 
