@@ -20,7 +20,6 @@
 #include <faabric/util/string_tools.h>
 #include <faabric/util/testing.h>
 #include <faabric/util/timing.h>
-#include <faabric/loadbalance/LoadBalancePolicy.h>
 
 #include <sys/eventfd.h>
 #include <sys/file.h>

@@ -10,6 +10,7 @@
 #include <faabric/util/PeriodicBackgroundThread.h>
 #include <faabric/util/asio.h>
 #include <faabric/util/clock.h>
+#include <faabric/loadbalance/LoadBalancePolicy.h>
 #include <faabric/util/config.h>
 #include <faabric/util/dirty.h>
 #include <faabric/util/func.h>
