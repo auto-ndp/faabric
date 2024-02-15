@@ -444,6 +444,7 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
   std::shared_ptr<faabric::BatchExecuteRequest> req,
   faabric::util::SchedulingTopologyHint topologyHint)
 {
+    FaasmDefaultPolicy policy;
     ZoneScopedNS("Scheduler::makeSchedulingDecision", 5);
     int nMessages = req->messages_size();
     const faabric::Message& firstMsg = req->messages().at(0);
@@ -558,7 +559,6 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
             }
 
             // MostSlotsPolicy policy;
-            FaasmDefaultPolicy policy;
             hosts_map = policy.dispatch(hosts_map);
 
             for (const auto& [host, resources] : hosts_map) {
@@ -595,16 +595,23 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
         std::string lastHost;
         if (remainder > 0) {
             std::vector<std::string> unregisteredHosts;
+            std::map<std::string, faabric::HostResources> hosts_map;
+
             if (hostKindDifferent) {
                 for (auto&& h : getAvailableHostsForFunction(firstMsg)) {
-                    unregisteredHosts.push_back(std::move(h));
+                    hosts_map[h] = getHostResources(h);
                 }
             } else {
                 unregisteredHosts =
                   getUnregisteredHosts(firstMsg.user(), firstMsg.function());
-            }
 
-            for (const auto& h : unregisteredHosts) {
+                for (auto&& h : unregisteredHosts) {
+                    hosts_map[h] = getHostResources(h);
+                }
+            }
+            
+            hosts_map = policy.dispatch(hosts_map);
+            for (const auto& [h, r] : hosts_map) {
                 // Skip if this host
                 if (h == thisHost) {
                     continue;
@@ -614,8 +621,7 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
                 // Work out resources on the remote host
                 SPDLOG_DEBUG("Checkig unregeistered {} for resources", h);
                 SPDLOG_DEBUG("Remaining: {}", remainder);
-
-                faabric::HostResources r = getHostResources(h);
+                
                 int available = r.slots() - r.usedslots();
                 // We need to floor at zero here in case the remote host is
                 // overloaded, in which case its used slots will be greater than
