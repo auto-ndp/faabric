@@ -566,8 +566,14 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
             SPDLOG_DEBUG("Reordered registered hosts based on LoadBalancePolicy");
             SPDLOG_DEBUG("Registered Hosts map size: {}", host_resources_pairs.size());
 
+            // Extract a set of registered hosts from host_resources_pairs preserving the order
+            std::set<std::string> registeredHostsSet;
             for (const auto& [host, resources] : host_resources_pairs) {
-                SPDLOG_INFO("Host: {}, Slots: {}, UsedSlots: {}", host, resources.slots(), resources.usedslots());
+                registeredHostsSet.insert(host);
+            }
+
+            for (const auto& host : registeredHostsSet) {
+                SPDLOG_INFO("Host: {}", host);
                 
                 // Work out resources on the remote host
                 const faabric::HostResources r = getHostResources(host);
@@ -610,8 +616,7 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
                     host_resources_pairs.push_back({h, getHostResources(h)});
                 }
             } else {
-                unregisteredHosts =
-                  getUnregisteredHosts(firstMsg.user(), firstMsg.function());
+                unregisteredHosts = getUnregisteredHosts(firstMsg.user(), firstMsg.function());
 
                 for (auto&& h : unregisteredHosts) {
                     host_resources_pairs.push_back({h, getHostResources(h)});
@@ -623,7 +628,13 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
             SPDLOG_DEBUG("Reordered unregistered hosts based on LoadBalancePolicy");
             SPDLOG_DEBUG("Unregistered Hosts map size: {}", host_resources_pairs.size());
 
-            for (const auto& [h, resource] : host_resources_pairs) {
+            // Extract a set of unregistered hosts from host_resources_pairs preserving the order
+            std::set<std::string> unregisteredHostsSet;
+            for (const auto& [host, resources] : host_resources_pairs) {
+                unregisteredHostsSet.insert(host);
+            }
+
+            for (const auto& h : unregisteredHostsSet) {
                 // Skip if this host
                 if (h == thisHost) {
                     continue;
