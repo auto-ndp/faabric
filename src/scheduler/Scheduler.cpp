@@ -559,7 +559,7 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
             }
 
             MostSlotsPolicy policy;
-            policy.dispatch(hosts_map);
+            hosts_map = policy.dispatch(hosts_map);
 
             for (const auto& [host, resources] : hosts_map) {
                 // Work out resources on the remote host

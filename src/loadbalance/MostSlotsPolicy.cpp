@@ -3,12 +3,21 @@
 
 std::map<std::string, faabric::HostResources> MostSlotsPolicy::dispatch(std::map<std::string, faabric::HostResources>& host_resources)
 {
-    throw std::runtime_error("MostSlotsPolicy::dispatch not implemented");
+    std::vector<std::pair<std::string, faabric::HostResources>> vec(host_resources.begin(), host_resources.end());
 
-    // Sort map in-place by available slots descending
-    std::sort(host_resources.begin(), host_resources.end(), [](const auto &a, const auto &b) {
+    // Sort the vector by the number of available slots in descending order
+    std::sort(vec.begin(), vec.end(), [](const auto &a, const auto &b) {
         int available_a = a.second.slots() - a.second.usedslots();
         int available_b = b.second.slots() - b.second.usedslots();
         return available_a > available_b;
     });
+
+    // Convert the vector back to a map
+    std::map<std::string, faabric::HostResources> sorted_hosts;
+    for (const auto &pair : vec)
+    {
+        sorted_hosts[pair.first] = pair.second;
+    }
+
+    return sorted_hosts;
 }
