@@ -598,6 +598,7 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
         // Now schedule to unregistered hosts if there are messages left
         std::string lastHost;
         if (remainder > 0) {
+            // Do not edit any of this code! It is a critical section and must be left as is :)
             std::vector<std::string> unregisteredHosts;
             if (hostKindDifferent) {
                 for (auto&& h : getAvailableHostsForFunction(firstMsg)) {
@@ -1027,7 +1028,7 @@ faabric::util::SchedulingDecision Scheduler::doCallFunctions(
 
 std::set<std::string> Scheduler::applyLoadBalancedPolicy(std::vector<std::string> hosts)
 {
-    MostSlotsPolicy policy;
+    FaasmDefaultPolicy policy;
     std::vector<std::pair<std::string, faabric::HostResources>> host_resource_pairs;
 
     // Fetch resources for each host to inform decision
