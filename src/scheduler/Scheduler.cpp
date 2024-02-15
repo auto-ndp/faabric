@@ -104,8 +104,6 @@ Scheduler::Scheduler()
 
 Scheduler::~Scheduler()
 {
-
-    shutdown();
     if (!_isShutdown) {
         SPDLOG_ERROR("Destructing scheduler without shutting down first");
     }
@@ -554,7 +552,9 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
         if (!hostKindDifferent && remainder > 0) {
             SPDLOG_DEBUG("Scheduling {}/{} of {} on registered hosts", remainder, nMessages, funcStr);
             
-            const auto& registeredHosts = getFunctionRegisteredHosts(firstMsg.user(), firstMsg.function(), false);
+            const std::set<std::string>& registeredHosts = getFunctionRegisteredHosts(firstMsg.user(), firstMsg.function(), false);
+            SPDLOG_DEBUG("Number of registered hosts: {}", registeredHosts.size());
+            
             std::vector<std::pair<std::string, faabric::HostResources>> host_resources_pairs;
             for (std::string h : registeredHosts) {
                 host_resources_pairs.push_back(std::make_pair(h, getHostResources(h)));
