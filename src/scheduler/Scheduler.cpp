@@ -1036,7 +1036,7 @@ std::set<std::string> Scheduler::applyLoadBalancedPolicy(std::vector<std::string
     }
 
     // Apply ordering to the pairs
-    thispolicy.dispatch(host_resource_pairs);
+    policy.dispatch(host_resource_pairs);
     
     // Extract the ordered hosts
     std::set<std::string> ordered_hosts;
