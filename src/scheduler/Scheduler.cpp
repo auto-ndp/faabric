@@ -553,21 +553,17 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
             SPDLOG_DEBUG("Scheduling {}/{} of {} on registered hosts", remainder, nMessages, funcStr);
             
             bool use_faasm_default_policy = true;
-            const std::set<std::string>& thisRegisteredHosts = getFunctionRegisteredHosts(firstMsg.user(), firstMsg.function(), false);
-
-            std::vector<faabric::HostResources> hostResources;
-            for (std::string h : thisRegisteredHosts) {
-                hostResources.push_back(getHostResources(h));
+            std::map <std::string, faabric::HostResources> hosts_map;
+            for (std::string h : getFunctionRegisteredHosts(firstMsg.user(), firstMsg.function(), false)) {
+                hosts_map[h] = getHostResources(h);
             }
 
-            // Reorder thisRegistered based on policy selected
             FaasmDefaultPolicy policy;
-            std::set<std::sting> balancedRegisteredHosts = policy.dispatch(thisRegisteredHosts, hostResources);
+            policy.dispatch(hosts_map);
 
-            for (const auto& h : balancedRegisteredHosts) {
+            for (const auto& [host, resources] : balancedRegisteredHosts) {
                 // Work out resources on the remote host
-                faabric::HostResources r = getHostResources(h);
-                int available = r.slots() - r.usedslots();
+                int available = resources.slots() - resources.usedslots();
                 // We need to floor at zero here in case the remote host is
                 // overloaded, in which case its used slots will be greater than
                 // its available slots.
