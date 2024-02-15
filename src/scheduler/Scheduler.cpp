@@ -1027,7 +1027,7 @@ faabric::util::SchedulingDecision Scheduler::doCallFunctions(
 
 std::set<std::string> Scheduler::applyLoadBalancedPolicy(std::vector<std::string> hosts)
 {
-    FaasmDefaultPolicy policy;
+    MostSlotsPolicy policy;
     std::vector<std::pair<std::string, faabric::HostResources>> host_resource_pairs;
 
     // Fetch resources for each host to inform decision
