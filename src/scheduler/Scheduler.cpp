@@ -570,7 +570,7 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
                 SPDLOG_INFO("Host: {}, Slots: {}, UsedSlots: {}", host, resources.slots(), resources.usedslots());
                 
                 // Work out resources on the remote host
-                faabric::HostResources& r = getHostResources(h);
+                const faabric::HostResources r = getHostResources(h);
                 int available = r.slots() - r.usedslots();
                 // We need to floor at zero here in case the remote host is
                 // overloaded, in which case its used slots will be greater than
@@ -634,7 +634,7 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
                 SPDLOG_DEBUG("Checkig unregeistered {} for resources", h);
                 SPDLOG_DEBUG("Remaining: {}", remainder);
 
-                faabric::HostResources& r = getHostResources(h); // Get up to date info
+                const faabric::HostResources r = getHostResources(h); // Get up to date info
 
                 int available = r.slots() - r.usedslots();
                 // We need to floor at zero here in case the remote host is
