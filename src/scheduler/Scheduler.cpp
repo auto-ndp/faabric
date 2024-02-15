@@ -560,9 +560,10 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
 
             // MostSlotsPolicy policy;
             SPDLOG_DEBUG("Reordering registered hosts based on LoadBalancePolicy");
-            hosts_map = policy.dispatch(hosts_map);
+            std::map<std::string, faabric::HostResources> sorted_map = policy.dispatch(hosts_map);
+            SPDLOG_DEBUG("Reordered registered hosts based on LoadBalancePolicy");
 
-            for (const auto& [host, resources] : hosts_map) {
+            for (const auto& [host, resources] : sorted_map) {
                 SPDLOG_INFO("Host: {}, Slots: {}, UsedSlots: {}", host, resources.slots(), resources.usedslots());
                 // Work out resources on the remote host
                 int available = resources.slots() - resources.usedslots();
@@ -612,8 +613,8 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
                 }
             }
             
-            hosts_map = policy.dispatch(hosts_map);
-            for (const auto& [h, r] : hosts_map) {
+            std::map<std::string, faabric::HostResources> sorted_map = policy.dispatch(hosts_map);
+            for (const auto& [h, r] : sorted_map) {
                 // Skip if this host
                 if (h == thisHost) {
                     continue;
