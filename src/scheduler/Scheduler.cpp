@@ -551,7 +551,12 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
               getFunctionRegisteredHosts(
                 firstMsg.user(), firstMsg.function(), false);
 
-            std::set<std::string> balanced_registered_hosts = applyLoadBalancedPolicy(thisRegisteredHosts);
+            std::vector<std::string> registeredHosts;
+            for (const auto& h : thisRegisteredHosts) {
+                registeredHosts.push_back(h);
+            }
+
+            std::set<std::string> balanced_registered_hosts = applyLoadBalancedPolicy(registeredHosts);
 
             // Loop through the ordered registered hosts and schedule as many as possible on each
             for (const auto& h : balanced_registered_hosts) {
