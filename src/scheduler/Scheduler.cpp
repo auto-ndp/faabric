@@ -99,6 +99,8 @@ Scheduler::Scheduler()
         }
         this->updateMonitoring();
     }
+    
+    policy = FaasmDefaultPolicy();
 }
 
 Scheduler::~Scheduler()
