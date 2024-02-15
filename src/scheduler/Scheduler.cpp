@@ -514,7 +514,7 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
             hosts.push_back(thisHost);
         }
     } else {
-// Work out how many we can handle locally
+        // Work out how many we can handle locally
         int slots = thisHostResources.slots();
         if (topologyHint == faabric::util::SchedulingTopologyHint::UNDERFULL) {
             slots = slots / 2;
@@ -550,7 +550,25 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
               getFunctionRegisteredHosts(
                 firstMsg.user(), firstMsg.function(), false);
 
-            for (const auto& h : thisRegisteredHosts) {
+            // Get all the pairings of host and resources
+            std::vector<std::pair<std::string, faabric::HostResources>> host_resource_pairs;
+            for (const auto& h : thisRegisteredHosts)
+            {
+                faabric::HostResources r = getHostResources(h);
+                host_resource_pairs.push_back(std::make_pair(h, r));
+            }
+
+            // Apply policy ordering
+            policy.dispatch(host_resource_pairs);
+        
+            std::vector<std::string> ordered_registered_hosts;
+            for (const auto& [h, r] : host_resource_pairs)
+            {
+                ordered_registered_hosts.push_back(h);
+            }
+
+            // Loop through the ordered registered hosts and schedule as many as possible on each
+            for (const auto& h : ordered_registered_hosts) {
                 // Work out resources on the remote host
                 faabric::HostResources r = getHostResources(h);
                 int available = r.slots() - r.usedslots();
