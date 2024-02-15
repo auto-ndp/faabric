@@ -552,10 +552,11 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
         int remainder = nMessages - nLocally;
         if (!hostKindDifferent && remainder > 0) {
             SPDLOG_DEBUG("Scheduling {}/{} of {} on registered hosts", remainder, nMessages, funcStr);
-
+            
+            const auto& registeredHosts = getFunctionRegisteredHosts(firstMsg.user(), firstMsg.function(), false);
             std::vector<std::pair<std::string, faabric::HostResources>> host_resources_pairs;
-            for (std::string h : getFunctionRegisteredHosts(firstMsg.user(), firstMsg.function(), false)) {
-                host_resources_pairs.push_back({h, getHostResources(h)});
+            for (std::string h : registeredHosts) {
+                host_resources_pairs.push_back(std::make_pair(h, getHostResources(h)));
             }
 
             // MostSlotsPolicy policy;
@@ -614,7 +615,11 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
                 }
             }
             
+            SPDLOG_DEBUG("Reordering unregistered hosts based on LoadBalancePolicy");
             policy.dispatch(host_resources_pairs);
+            SPDLOG_DEBUG("Reordered unregistered hosts based on LoadBalancePolicy");
+            SPDLOG_DEBUG("Unregistered Hosts map size: {}", host_resources_pairs.size());
+
             for (const auto& [h, r] : host_resources_pairs) {
                 // Skip if this host
                 if (h == thisHost) {
