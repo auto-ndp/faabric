@@ -514,10 +514,7 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
             hosts.push_back(thisHost);
         }
     } else {
-        // At this point we know we're the master host, and we've not been
-        // asked to force full local execution.
-
-        // Work out how many we can handle locally
+// Work out how many we can handle locally
         int slots = thisHostResources.slots();
         if (topologyHint == faabric::util::SchedulingTopologyHint::UNDERFULL) {
             slots = slots / 2;
@@ -533,9 +530,7 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
 
         // Make sure we don't execute the wrong kind (storage/compute) of
         // call locally
-        if (hostKindDifferent) { 
-            SPDLOG_DEBUG("Host kind different, not scheduling {} locally",
-                         funcStr);
+        if (hostKindDifferent) {
             nLocally = 0;
         }
 
@@ -549,40 +544,23 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
         // If some are left, we need to distribute.
         // First try and do so on already registered hosts.
         int remainder = nMessages - nLocally;
+
         if (!hostKindDifferent && remainder > 0) {
-            SPDLOG_DEBUG("Scheduling {}/{} of {} on registered hosts", remainder, nMessages, funcStr);
-            
-            const std::set<std::string>& registeredHosts = getFunctionRegisteredHosts(firstMsg.user(), firstMsg.function(), false);
-            SPDLOG_DEBUG("Number of registered hosts: {}", registeredHosts.size());
-            
-            std::vector<std::pair<std::string, faabric::HostResources>> host_resources_pairs;
-            for (std::string h : registeredHosts) {
-                host_resources_pairs.push_back(std::make_pair(h, getHostResources(h)));
-            }
+            const std::set<std::string>& thisRegisteredHosts =
+              getFunctionRegisteredHosts(
+                firstMsg.user(), firstMsg.function(), false);
 
-            // MostSlotsPolicy policy;
-            SPDLOG_DEBUG("Reordering registered hosts based on LoadBalancePolicy");
-            policy.dispatch(host_resources_pairs);
-            SPDLOG_DEBUG("Reordered registered hosts based on LoadBalancePolicy");
-            SPDLOG_DEBUG("Registered Hosts map size: {}", host_resources_pairs.size());
-
-            // Extract a set of registered hosts from host_resources_pairs preserving the order
-            std::set<std::string> registeredHostsSet;
-            for (const auto& [host, resources] : host_resources_pairs) {
-                registeredHostsSet.insert(host);
-            }
-
-            for (const auto& host : registeredHostsSet) {
-                SPDLOG_INFO("Host: {}", host);
-                
+            for (const auto& h : thisRegisteredHosts) {
                 // Work out resources on the remote host
-                const faabric::HostResources r = getHostResources(host);
+                faabric::HostResources r = getHostResources(h);
                 int available = r.slots() - r.usedslots();
+
                 // We need to floor at zero here in case the remote host is
                 // overloaded, in which case its used slots will be greater than
                 // its available slots.
                 available = std::max<int>(0, available);
                 int nOnThisHost = std::min<int>(available, remainder);
+
                 // Under the NEVER_ALONE topology hint, we never choose a host
                 // unless we can schedule at least two requests in it.
                 if (topologyHint ==
@@ -590,14 +568,17 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
                     nOnThisHost < 2) {
                     continue;
                 }
+
                 SPDLOG_TRACE("Scheduling {}/{} of {} on {} (registered)",
                              nOnThisHost,
                              nMessages,
                              funcStr,
-                             host);
+                             h);
+
                 for (int i = 0; i < nOnThisHost; i++) {
-                    hosts.push_back(host);
+                    hosts.push_back(h);
                 }
+
                 remainder -= nOnThisHost;
                 if (remainder <= 0) {
                     break;
@@ -609,32 +590,16 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
         std::string lastHost;
         if (remainder > 0) {
             std::vector<std::string> unregisteredHosts;
-            std::vector<std::pair<std::string, faabric::HostResources>> host_resources_pairs;
-
             if (hostKindDifferent) {
                 for (auto&& h : getAvailableHostsForFunction(firstMsg)) {
-                    host_resources_pairs.push_back({h, getHostResources(h)});
+                    unregisteredHosts.push_back(std::move(h));
                 }
             } else {
-                unregisteredHosts = getUnregisteredHosts(firstMsg.user(), firstMsg.function());
-
-                for (auto&& h : unregisteredHosts) {
-                    host_resources_pairs.push_back({h, getHostResources(h)});
-                }
-            }
-            
-            SPDLOG_DEBUG("Reordering unregistered hosts based on LoadBalancePolicy");
-            policy.dispatch(host_resources_pairs);
-            SPDLOG_DEBUG("Reordered unregistered hosts based on LoadBalancePolicy");
-            SPDLOG_DEBUG("Unregistered Hosts map size: {}", host_resources_pairs.size());
-
-            // Extract a set of unregistered hosts from host_resources_pairs preserving the order
-            std::set<std::string> unregisteredHostsSet;
-            for (const auto& [host, resources] : host_resources_pairs) {
-                unregisteredHostsSet.insert(host);
+                unregisteredHosts =
+                  getUnregisteredHosts(firstMsg.user(), firstMsg.function());
             }
 
-            for (const auto& h : unregisteredHostsSet) {
+            for (const auto& h : unregisteredHosts) {
                 // Skip if this host
                 if (h == thisHost) {
                     continue;
@@ -642,19 +607,14 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
 
                 lastHost = h;
                 // Work out resources on the remote host
-                SPDLOG_DEBUG("Checkig unregeistered {} for resources", h);
-                SPDLOG_DEBUG("Remaining: {}", remainder);
-
-                const faabric::HostResources r = getHostResources(h); // Get up to date info
-
+                faabric::HostResources r = getHostResources(h);
                 int available = r.slots() - r.usedslots();
+
                 // We need to floor at zero here in case the remote host is
                 // overloaded, in which case its used slots will be greater than
                 // its available slots.
                 available = std::max<int>(0, available);
                 int nOnThisHost = std::min(available, remainder);
-
-                SPDLOG_DEBUG("Unregisted Host Available Slots: {}, nOnThisHost: {}", available, nOnThisHost);
 
                 if (topologyHint ==
                       faabric::util::SchedulingTopologyHint::NEVER_ALONE &&
@@ -662,7 +622,7 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
                     continue;
                 }
 
-                SPDLOG_DEBUG("Scheduling {}/{} of {} on {} (unregistered)",
+                SPDLOG_TRACE("Scheduling {}/{} of {} on {} (unregistered)",
                              nOnThisHost,
                              nMessages,
                              funcStr,
