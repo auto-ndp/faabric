@@ -608,11 +608,8 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
                   getUnregisteredHosts(firstMsg.user(), firstMsg.function());
             }
 
-            // Convert unregistered hosts to a set
 
-            std::set<std::string> balanced_unregistered_hosts = applyLoadBalancedPolicy(unregisteredHosts);            
-
-            for (const auto& h : balanced_unregistered_hosts) {
+            for (const auto& h : unregisteredHosts) {
                 // Skip if this host
                 if (h == thisHost) {
                     continue;
