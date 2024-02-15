@@ -553,9 +553,9 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
         if (!hostKindDifferent && remainder > 0) {
             SPDLOG_DEBUG("Scheduling {}/{} of {} on registered hosts", remainder, nMessages, funcStr);
 
-            std::map <std::string, faabric::HostResources> hosts_map;
+            std::vector<std::pair<std::string, faabric::HostResources>> host_resources_pairs;
             for (std::string h : getFunctionRegisteredHosts(firstMsg.user(), firstMsg.function(), false)) {
-                hosts_map[h] = getHostResources(h);
+                host_resources_pairs.push_back({h, getHostResources(h)});
             }
 
             // MostSlotsPolicy policy;
@@ -563,7 +563,7 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
             std::map<std::string, faabric::HostResources> sorted_map = policy.dispatch(hosts_map);
             SPDLOG_DEBUG("Reordered registered hosts based on LoadBalancePolicy");
             print("Registered Hosts map size: {}", sorted_map.size());
-            
+
             for (const auto& [host, resources] : sorted_map) {
                 SPDLOG_INFO("Host: {}, Slots: {}, UsedSlots: {}", host, resources.slots(), resources.usedslots());
                 // Work out resources on the remote host
