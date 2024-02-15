@@ -599,23 +599,23 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
         std::string lastHost;
         if (remainder > 0) {
             std::vector<std::string> unregisteredHosts;
-            std::map<std::string, faabric::HostResources> hosts_map;
+            std::vector<std::pair<std::string, faabric::HostResources>> host_resources_pairs;
 
             if (hostKindDifferent) {
                 for (auto&& h : getAvailableHostsForFunction(firstMsg)) {
-                    hosts_map[h] = getHostResources(h);
+                    host_resources_pairs.push_back({h, getHostResources(h)});
                 }
             } else {
                 unregisteredHosts =
                   getUnregisteredHosts(firstMsg.user(), firstMsg.function());
 
                 for (auto&& h : unregisteredHosts) {
-                    hosts_map[h] = getHostResources(h);
+                    host_resources_pairs.push_back({h, getHostResources(h)});
                 }
             }
             
-            std::map<std::string, faabric::HostResources> sorted_map = policy.dispatch(hosts_map);
-            for (const auto& [h, r] : sorted_map) {
+            policy.dispatch(host_resources_pairs);
+            for (const auto& [h, r] : host_resources_pairs) {
                 // Skip if this host
                 if (h == thisHost) {
                     continue;
