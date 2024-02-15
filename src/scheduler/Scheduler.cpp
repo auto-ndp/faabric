@@ -444,7 +444,7 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
   std::shared_ptr<faabric::BatchExecuteRequest> req,
   faabric::util::SchedulingTopologyHint topologyHint)
 {
-    FaasmDefaultPolicy policy;
+    MostSlotsPolicy policy;
     ZoneScopedNS("Scheduler::makeSchedulingDecision", 5);
     int nMessages = req->messages_size();
     const faabric::Message& firstMsg = req->messages().at(0);
@@ -621,7 +621,7 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
                 // Work out resources on the remote host
                 SPDLOG_DEBUG("Checkig unregeistered {} for resources", h);
                 SPDLOG_DEBUG("Remaining: {}", remainder);
-                
+
                 int available = r.slots() - r.usedslots();
                 // We need to floor at zero here in case the remote host is
                 // overloaded, in which case its used slots will be greater than
