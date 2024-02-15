@@ -558,7 +558,7 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
                 hosts_map[h] = getHostResources(h);
             }
 
-            FaasmDefaultPolicy policy;
+            MostSlotsPolicy policy;
             policy.dispatch(hosts_map);
 
             for (const auto& [host, resources] : hosts_map) {
