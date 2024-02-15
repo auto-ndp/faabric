@@ -568,8 +568,10 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
 
             for (const auto& [host, resources] : host_resources_pairs) {
                 SPDLOG_INFO("Host: {}, Slots: {}, UsedSlots: {}", host, resources.slots(), resources.usedslots());
+                
                 // Work out resources on the remote host
-                int available = resources.slots() - resources.usedslots();
+                faabric::HostResources& r = getHostResources(h);
+                int available = r.slots() - r.usedslots();
                 // We need to floor at zero here in case the remote host is
                 // overloaded, in which case its used slots will be greater than
                 // its available slots.
@@ -621,7 +623,7 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
             SPDLOG_DEBUG("Reordered unregistered hosts based on LoadBalancePolicy");
             SPDLOG_DEBUG("Unregistered Hosts map size: {}", host_resources_pairs.size());
 
-            for (const auto& [h, r] : host_resources_pairs) {
+            for (const auto& [h, resource] : host_resources_pairs) {
                 // Skip if this host
                 if (h == thisHost) {
                     continue;
@@ -631,6 +633,8 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
                 // Work out resources on the remote host
                 SPDLOG_DEBUG("Checkig unregeistered {} for resources", h);
                 SPDLOG_DEBUG("Remaining: {}", remainder);
+
+                faabric::HostResources& r = getHostResources(h); // Get up to date info
 
                 int available = r.slots() - r.usedslots();
                 // We need to floor at zero here in case the remote host is
