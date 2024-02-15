@@ -444,7 +444,8 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
   std::shared_ptr<faabric::BatchExecuteRequest> req,
   faabric::util::SchedulingTopologyHint topologyHint)
 {
-    MostSlotsPolicy policy;
+    // MostSlotsPolicy policy;
+    FaasmDefaultPolicy policy;
     ZoneScopedNS("Scheduler::makeSchedulingDecision", 5);
     int nMessages = req->messages_size();
     const faabric::Message& firstMsg = req->messages().at(0);
