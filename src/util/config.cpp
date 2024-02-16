@@ -36,9 +36,11 @@ void SystemConfig::initialise()
     overrideCpuCount = this->getSystemConfIntParam("OVERRIDE_CPU_COUNT", "0");
     noTopologyHints = getEnvVar("NO_TOPOLOGY_HINTS", "off");
     isStorageNode = this->getSystemConfIntParam("IS_STORAGE_NODE", "0");
-    noSingleHostOptimisations =
-      this->getSystemConfIntParam("NO_SINGLE_HOST", "0");
-
+    noSingleHostOptimisations = this->getSystemConfIntParam("NO_SINGLE_HOST", "0");
+    load_balance_policy = getEnvVar("LOAD_BALANCE_POLICY", "faasm_default");
+    offload_cpu_threshold = stod(getEnvVar("OFFLOAD_CPU_THRESHOLD", "0.8"));
+    offload_ram_threshold = stod(getEnvVar("OFFLOAD_RAM_THRESHOLD", "0.8"));
+    offload_load_avg_threshold = stod(getEnvVar("OFFLOAD_LOAD_AVG_THRESHOLD", "0.8"));
     // Worker-related timeouts (all in seconds)
     globalMessageTimeout =
       this->getSystemConfIntParam("GLOBAL_MESSAGE_TIMEOUT", "60000");
@@ -115,6 +117,14 @@ void SystemConfig::print()
     SPDLOG_INFO("OVERRIDE_CPU_COUNT         {}", overrideCpuCount);
     SPDLOG_INFO("NO_TOPOLOGY_HINTS         {}", noTopologyHints);
     SPDLOG_INFO("IS_STORAGE_NODE            {}", isStorageNode);
+    SPDLOG_INFO("LOAD_BALANCE_POLICY        {}", load_balance_policy);
+    
+    if (isStorageNode) {
+      SPDLOG_INFO("--- Metrics Collection Module ---");
+      SPDLOG_INFO("OFFLOAD_CPU_THRESHOLD      {}", offload_cpu_threshold);
+      SPDLOG_INFO("OFFLOAD_RAM_THRESHOLD      {}", offload_ram_threshold);
+      SPDLOG_INFO("OFFLOAD_LOAD_AVG_THRESHOLD {}", offload_load_avg_threshold);
+    }
 
     SPDLOG_INFO("--- Timeouts ---");
     SPDLOG_INFO("GLOBAL_MESSAGE_TIMEOUT     {}", globalMessageTimeout);

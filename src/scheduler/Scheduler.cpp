@@ -1028,7 +1028,19 @@ faabric::util::SchedulingDecision Scheduler::doCallFunctions(
 
 std::set<std::string> Scheduler::applyLoadBalancedPolicy(std::vector<std::string> hosts)
 {
-    FaasmDefaultPolicy policy;
+    // get load policy from config
+    std::string policyName = faabric::util::getSystemConfig().load_balance_policy;
+
+    LoadBalancedPolicy policy;
+    if (policyName == "faasm_default") {
+        policy = FaasmDefaultPolicy();
+    } else if (policyName == "most_slots") {
+        policy = MostSlotsPolicy();
+    } else {
+        SPDLOG_ERROR("Unknown load balance policy: {}", policyName);
+        throw std::runtime_error("Unknown load balance policy");
+    }
+    
     std::vector<std::pair<std::string, faabric::HostResources>> host_resource_pairs;
 
     // Fetch resources for each host to inform decision

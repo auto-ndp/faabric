@@ -32,6 +32,11 @@ class SystemConfig
     bool isStorageNode;
     int noSingleHostOptimisations;
 
+    std::string load_balance_policy;
+    double offload_cpu_threshold;
+    double offload_ram_threshold;
+    double offload_load_avg_threshold;
+
     // Worker-related timeouts
     int globalMessageTimeout;
     int boundTimeout;
