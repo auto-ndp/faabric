@@ -1048,6 +1048,7 @@ std::set<std::string> Scheduler::applyLoadBalancedPolicy(std::vector<std::string
         policy.dispatch(host_resource_pairs);
     } else {
         SPDLOG_ERROR("Unknown load balance policy: {}! Applying default policy", policyName);
+        FaasmDefaultPolicy policy;
         policy.dispatch(host_resource_pairs);
     }
     
