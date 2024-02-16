@@ -443,21 +443,8 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
   std::shared_ptr<faabric::BatchExecuteRequest> req,
   faabric::util::SchedulingTopologyHint topologyHint)
 {
-
-    // get load policy from config
-    std::string policyName = faabric::util::getSystemConfig().load_balance_policy;
-
-    FaasmDefaultPolicy faasm_default_policy;
-    MostSlotsPolicy most_slots_policy;
-
-    if (policyName == "faasm_default") {
-        policy = FaasmDefaultPolicy();
-    } else if (policyName == "most_slots") {
-        policy = MostSlotsPolicy();
-    } else {
-        SPDLOG_ERROR("Unknown load balance policy: {}", policyName);
-        throw std::runtime_error("Unknown load balance policy");
-    }
+    // MostSlotsPolicy policy;
+    FaasmDefaultPolicy policy;
     ZoneScopedNS("Scheduler::makeSchedulingDecision", 5);
     int nMessages = req->messages_size();
     const faabric::Message& firstMsg = req->messages().at(0);
@@ -568,17 +555,9 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
             for (const auto& h : thisRegisteredHosts) {
                 registeredHosts.push_back(h);
             }
-            
-            // if conf.load_balance_policy == "faasm_default" {
-            std::set<std::string> balanced_registered_hosts;
-            if (policyName == "faasm_default") {
-                balanced_registered_hosts = applyLoadBalancedPolicy(registeredHosts, faasm_default_policy);
-            } else if (policyName == "most_slots") {
-                balanced_registered_hosts = applyLoadBalancedPolicy(registeredHosts, most_slots_policy);
-            } else {
-                SPDLOG_ERROR("Unknown load balance policy: {}", policyName);
-                balanced_registered_hosts = applyLoadBalancedPolicy(registeredHosts, faasm_default_policy);
-            }
+
+            std::set<std::string> balanced_registered_hosts = applyLoadBalancedPolicy(registeredHosts);
+
             // Loop through the ordered registered hosts and schedule as many as possible on each
             for (const auto& h : balanced_registered_hosts) {
                 // Work out resources on the remote host
@@ -1047,8 +1026,10 @@ faabric::util::SchedulingDecision Scheduler::doCallFunctions(
     return decision;
 }
 
-std::set<std::string> Scheduler::applyLoadBalancedPolicy(std::vector<std::string> hosts, LoadBalancePolicy& policy)
+std::set<std::string> Scheduler::applyLoadBalancedPolicy(std::vector<std::string> hosts)
 {
+    // get load policy from config
+    std::string policyName = faabric::util::getSystemConfig().load_balance_policy;
     std::vector<std::pair<std::string, faabric::HostResources>> host_resource_pairs;
 
     // Fetch resources for each host to inform decision
@@ -1058,8 +1039,17 @@ std::set<std::string> Scheduler::applyLoadBalancedPolicy(std::vector<std::string
         host_resource_pairs.push_back(std::make_pair(h, r));
     }
 
-    // Apply ordering to the pairs
-    policy.dispatch(host_resource_pairs);
+    // Determine policy based on faasm configuration
+    if (policyName == "faasm_default") {
+        FaasmDefaultPolicy policy;
+        policy.dispatch(host_resource_pairs);
+    } else if (policyName == "most_slots") {
+        MostSlotsPolicy policy;
+        policy.dispatch(host_resource_pairs);
+    } else {
+        SPDLOG_ERROR("Unknown load balance policy: {}! Applying default policy", policyName);
+        policy.dispatch(host_resource_pairs);
+    }
     
     // Extract the ordered hosts
     std::set<std::string> ordered_hosts;
