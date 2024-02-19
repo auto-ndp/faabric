@@ -545,6 +545,7 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
         int remainder = nMessages - nLocally;
 
         if (!hostKindDifferent && remainder > 0) {
+            SPDLOG_DEBUG("Getting registered hosts for {}/{}", firstMsg.user(), firstMsg.function());
             const std::set<std::string>& thisRegisteredHosts =
               getFunctionRegisteredHosts(
                 firstMsg.user(), firstMsg.function(), false);
@@ -597,12 +598,15 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
         std::string lastHost;
         if (remainder > 0) {
             // Do not edit any of this code! It is a critical section and must be left as is :)
+
             std::vector<std::string> unregisteredHosts;
             if (hostKindDifferent) {
+                SPDLOG_DEBUG("Getting available hosts for {}/{}", firstMsg.user(), firstMsg.function());
                 for (auto&& h : getAvailableHostsForFunction(firstMsg)) {
                     unregisteredHosts.push_back(std::move(h));
                 }
             } else {
+                SPDLOG_DEBUG("Getting unregistered hosts");
                 unregisteredHosts =
                   getUnregisteredHosts(firstMsg.user(), firstMsg.function());
             }
