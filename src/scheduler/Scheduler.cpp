@@ -1691,7 +1691,8 @@ faabric::HostResources Scheduler::getThisHostResources()
     faabric::HostResources hostResources = thisHostResources;
     hostResources.set_usedslots(
       this->thisHostUsedSlots.load(std::memory_order_acquire));
-    hostResources.set_loadaverage(faabric::util::getLoadAverage())
+    auto load_average = faabric::util::getLoadAverage();
+    hostResources.set_loadaverage(load_average);
     SPDLOG_DEBUG("Set load average to {}", hostResources.loadaverage());
     return hostResources;
 }
