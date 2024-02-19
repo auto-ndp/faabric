@@ -47,6 +47,7 @@ message BatchExecuteRequest {
 message HostResources {
     int32 slots = 1;
     int32 usedSlots = 2;
+    double loadAverage = 3;
 }
 
 message UnregisterRequest {

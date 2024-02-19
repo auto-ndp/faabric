@@ -8,6 +8,7 @@
 #include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/transport/PointToPointBroker.h>
 #include <faabric/util/PeriodicBackgroundThread.h>
+#include <faabric/util/system_metrics.h>
 #include <faabric/util/asio.h>
 #include <faabric/util/clock.h>
 #include <faabric/util/config.h>
