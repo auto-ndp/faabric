@@ -1048,6 +1048,10 @@ std::set<std::string> Scheduler::applyLoadBalancedPolicy(std::vector<std::string
         MostSlotsPolicy policy;
         SPDLOG_DEBUG("Applying most slots policy to hosts");
         policy.dispatch(host_resource_pairs);
+    } else if (policyName == "least_load") {
+        LeastLoadAveragePolicy policy;
+        SPDLOG_DEBUG("Applying least slots policy to hosts");
+        policy.dispatch(host_resource_pairs);
     } else {
         SPDLOG_ERROR("Unknown load balance policy: {}! Applying default policy", policyName);
         FaasmDefaultPolicy policy;
@@ -1693,7 +1697,6 @@ faabric::HostResources Scheduler::getThisHostResources()
       this->thisHostUsedSlots.load(std::memory_order_acquire));
     auto load_average = faabric::util::getLoadAverage();
     hostResources.set_loadaverage(load_average);
-    SPDLOG_DEBUG("Set load average to {}", hostResources.loadaverage());
     return hostResources;
 }
 
