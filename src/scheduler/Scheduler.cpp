@@ -1042,9 +1042,11 @@ std::set<std::string> Scheduler::applyLoadBalancedPolicy(std::vector<std::string
     // Determine policy based on faasm configuration
     if (policyName == "faasm_default") {
         FaasmDefaultPolicy policy;
+        SPDLOG_DEBUG("Applying default policy to hosts");
         policy.dispatch(host_resource_pairs);
     } else if (policyName == "most_slots") {
         MostSlotsPolicy policy;
+        SPDLOG_DEBUG("Applying most slots policy to hosts");
         policy.dispatch(host_resource_pairs);
     } else {
         SPDLOG_ERROR("Unknown load balance policy: {}! Applying default policy", policyName);
