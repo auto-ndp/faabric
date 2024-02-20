@@ -2,6 +2,7 @@
 #include <faabric/redis/Redis.h>
 #include <faabric/scheduler/ExecutorFactory.h>
 #include <faabric/scheduler/FunctionCallClient.h>
+#include <faabric/scheduler/FunctionCallServer.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/snapshot/SnapshotClient.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
@@ -19,6 +20,8 @@
 #include <faabric/util/string_tools.h>
 #include <faabric/util/testing.h>
 #include <faabric/util/timing.h>
+
+#include <faabric/loadbalance/LoadBalancePolicy.h>
 
 #include <sys/eventfd.h>
 #include <sys/file.h>
@@ -306,6 +309,7 @@ int Scheduler::reapStaleExecutors()
                 req.set_user(user);
                 req.set_function(function);
 
+                SPDLOG_DEBUG("Unregistering {} from {}", key, thisHost);
                 getFunctionCallClient(masterHost)->unregister(req);
             }
 
@@ -343,6 +347,7 @@ const std::set<std::string>& Scheduler::getFunctionRegisteredHosts(
 {
     faabric::util::SharedLock lock;
     if (acquireLock) {
+        SPDLOG_DEBUG("Acquiring lock for registered hosts");
         lock = faabric::util::SharedLock(mx);
     }
     std::string key = user + "/" + func;
@@ -369,7 +374,13 @@ void Scheduler::addRegisteredHost(const std::string& host,
 void Scheduler::vacateSlot()
 {
     ZoneScopedNS("Vacate scheduler slot", 5);
-    thisHostUsedSlots.fetch_sub(1, std::memory_order_acq_rel);
+    SPDLOG_INFO("[Scheduler::vacateSlot() - Vacating slot");
+    try {
+        thisHostUsedSlots.fetch_sub(1, std::memory_order_acq_rel);
+        SPDLOG_INFO("[Scheduler::vacateSlot() - Slot vacated");
+    } catch (std::exception& ex) {
+        SPDLOG_ERROR("Caught exception vacating slot: {}", ex.what());
+    }
 }
 
 faabric::util::SchedulingDecision Scheduler::callFunctions(
@@ -400,6 +411,7 @@ faabric::util::SchedulingDecision Scheduler::callFunctions(
         SPDLOG_DEBUG("Forwarding {} back to master {}", funcStr, masterHost);
 
         ZoneScopedN("Scheduler::callFunctions forward to master");
+        SPDLOG_DEBUG("Forwarding {} to master {}", funcStr, masterHost);
         getFunctionCallClient(masterHost)->executeFunctions(req);
         SchedulingDecision decision(firstMsg.appid(), firstMsg.groupid());
         decision.returnHost = masterHost;
@@ -502,9 +514,6 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
             hosts.push_back(thisHost);
         }
     } else {
-        // At this point we know we're the master host, and we've not been
-        // asked to force full local execution.
-
         // Work out how many we can handle locally
         int slots = thisHostResources.slots();
         if (topologyHint == faabric::util::SchedulingTopologyHint::UNDERFULL) {
@@ -537,11 +546,20 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
         int remainder = nMessages - nLocally;
 
         if (!hostKindDifferent && remainder > 0) {
+            SPDLOG_DEBUG("Getting registered hosts for {}/{}", firstMsg.user(), firstMsg.function());
             const std::set<std::string>& thisRegisteredHosts =
               getFunctionRegisteredHosts(
                 firstMsg.user(), firstMsg.function(), false);
 
+            std::vector<std::string> registeredHosts;
             for (const auto& h : thisRegisteredHosts) {
+                registeredHosts.push_back(h);
+            }
+
+            std::set<std::string> balanced_registered_hosts = applyLoadBalancedPolicy(registeredHosts);
+
+            // Loop through the ordered registered hosts and schedule as many as possible on each
+            for (const auto& h : balanced_registered_hosts) {
                 // Work out resources on the remote host
                 faabric::HostResources r = getHostResources(h);
                 int available = r.slots() - r.usedslots();
@@ -580,15 +598,20 @@ faabric::util::SchedulingDecision Scheduler::doSchedulingDecision(
         // Now schedule to unregistered hosts if there are messages left
         std::string lastHost;
         if (remainder > 0) {
+            // Do not edit any of this code! It is a critical section and must be left as is :)
+
             std::vector<std::string> unregisteredHosts;
             if (hostKindDifferent) {
+                SPDLOG_DEBUG("Getting available hosts for {}/{}", firstMsg.user(), firstMsg.function());
                 for (auto&& h : getAvailableHostsForFunction(firstMsg)) {
                     unregisteredHosts.push_back(std::move(h));
                 }
             } else {
+                SPDLOG_DEBUG("Getting unregistered hosts");
                 unregisteredHosts =
                   getUnregisteredHosts(firstMsg.user(), firstMsg.function());
             }
+
 
             for (const auto& h : unregisteredHosts) {
                 // Skip if this host
@@ -982,6 +1005,7 @@ faabric::util::SchedulingDecision Scheduler::doCallFunctions(
             }
 
             // Dispatch the calls
+            SPDLOG_DEBUG("Dispatching {} to {}", funcStr, host);
             getFunctionCallClient(host)->executeFunctions(hostRequest);
         }
     }
@@ -1005,6 +1029,47 @@ faabric::util::SchedulingDecision Scheduler::doCallFunctions(
     return decision;
 }
 
+std::set<std::string> Scheduler::applyLoadBalancedPolicy(std::vector<std::string> hosts)
+{
+    // get load policy from config
+    std::string policyName = faabric::util::getSystemConfig().load_balance_policy;
+    std::vector<std::pair<std::string, faabric::HostResources>> host_resource_pairs;
+
+    // Fetch resources for each host to inform decision
+    for (const auto& h : hosts)
+    {
+        faabric::HostResources r = getHostResources(h);
+        host_resource_pairs.push_back(std::make_pair(h, r));
+    }
+
+    // Determine policy based on faasm configuration
+    if (policyName == "faasm_default") {
+        FaasmDefaultPolicy policy;
+        SPDLOG_DEBUG("Applying default policy to hosts");
+        policy.dispatch(host_resource_pairs);
+    } else if (policyName == "most_slots") {
+        MostSlotsPolicy policy;
+        SPDLOG_DEBUG("Applying most slots policy to hosts");
+        policy.dispatch(host_resource_pairs);
+    } else if (policyName == "least_load") {
+        LeastLoadAveragePolicy policy;
+        SPDLOG_DEBUG("Applying least slots policy to hosts");
+        policy.dispatch(host_resource_pairs);
+    } else {
+        SPDLOG_ERROR("Unknown load balance policy: {}! Applying default policy", policyName);
+        FaasmDefaultPolicy policy;
+        policy.dispatch(host_resource_pairs);
+    }
+    
+    // Extract the ordered hosts
+    std::set<std::string> ordered_hosts;
+    for (const auto& [h, r] : host_resource_pairs)
+    {
+        ordered_hosts.insert(h);
+    }
+
+    return ordered_hosts;
+}
 std::vector<std::string> Scheduler::getUnregisteredHosts(
   const std::string& user,
   const std::string& function,
@@ -1200,6 +1265,7 @@ void Scheduler::broadcastFlush()
     allHosts.erase(thisHost);
 
     // Dispatch flush message to all other hosts
+    SPDLOG_DEBUG("Broadcasting flush to {} hosts", allHosts.size());
     for (auto& otherHost : allHosts) {
         getFunctionCallClient(otherHost)->sendFlush();
     }
@@ -1234,8 +1300,10 @@ void Scheduler::setFunctionResult(std::unique_ptr<faabric::Message> msg)
         if (it != localResults.end()) {
             it->second->setValue(std::move(msg));
         } else {
+            SPDLOG_ERROR("Result received for unknown message {}! Removing delta handler as a precaution", msg->id());
+            faabric::scheduler::FunctionCallServer::removeNdpDeltaHandler(msg->id());
             throw std::runtime_error(
-              "Got direct result, but promise is registered");
+              "Result received for unknown message " + std::to_string(msg->id()));
         }
         return;
     }
@@ -1254,6 +1322,7 @@ void Scheduler::setFunctionResult(std::unique_ptr<faabric::Message> msg)
     if (!directResultHost.empty()) {
         ZoneScopedN("Direct result send");
         faabric::util::FullLock lock(mx);
+        SPDLOG_DEBUG("Sending direct result for {} to {}", msg->id(), directResultHost);
         auto fc = getFunctionCallClient(directResultHost);
         lock.unlock();
         {
@@ -1629,6 +1698,8 @@ faabric::HostResources Scheduler::getThisHostResources()
     faabric::HostResources hostResources = thisHostResources;
     hostResources.set_usedslots(
       this->thisHostUsedSlots.load(std::memory_order_acquire));
+    auto load_average = faabric::util::getLoadAverage();
+    hostResources.set_loadaverage(load_average);
     return hostResources;
 }
 
@@ -1641,7 +1712,7 @@ void Scheduler::setThisHostResources(faabric::HostResources& res)
 
 faabric::HostResources Scheduler::getHostResources(const std::string& host)
 {
-    SPDLOG_TRACE("Requesting resources from {}", host);
+    SPDLOG_DEBUG("Requesting resources from {}", host);
     return getFunctionCallClient(host)->getResources();
 }
 
@@ -1822,6 +1893,7 @@ void Scheduler::broadcastPendingMigrations(
     registeredHosts.erase(thisHost);
 
     // Send pending migrations to all involved hosts
+    SPDLOG_DEBUG("Broadcasting pending migrations for app {}", msg.appid());
     for (auto& otherHost : thisRegisteredHosts) {
         getFunctionCallClient(otherHost)->sendPendingMigrations(
           pendingMigrations);

@@ -106,6 +106,7 @@ add_subdirectory(src/mpi)
 add_subdirectory(src/proto)
 add_subdirectory(src/redis)
 add_subdirectory(src/runner)
+add_subdirectory(src/loadbalance)
 add_subdirectory(src/scheduler)
 add_subdirectory(src/snapshot)
 add_subdirectory(src/state)
@@ -130,6 +131,7 @@ add_library(faabric
         $<TARGET_OBJECTS:scheduler_obj>
         $<TARGET_OBJECTS:snapshot_obj>
         $<TARGET_OBJECTS:state_obj>
+        $<TARGET_OBJECTS:loadbalance_obj>
         $<TARGET_OBJECTS:transport_obj>
         $<TARGET_OBJECTS:util_obj>
         )

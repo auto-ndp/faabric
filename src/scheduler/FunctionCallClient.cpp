@@ -196,10 +196,12 @@ void FunctionCallClient::unregister(faabric::UnregisterRequest& req)
 
 faabric::NdpDelta FunctionCallClient::requestNdpDelta(int msgId)
 {
+    SPDLOG_DEBUG("Requesting NDP delta for message {}", msgId);
     faabric::GetNdpDelta gnd;
     gnd.set_id(msgId);
     faabric::NdpDelta delta;
     syncSend(faabric::scheduler::FunctionCalls::NdpDeltaRequest, &gnd, &delta);
+    SPDLOG_DEBUG("Received NDP delta for message {}", msgId);
     return delta;
 }
 }

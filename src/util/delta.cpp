@@ -236,7 +236,7 @@ void applyDelta(std::span<const uint8_t> delta,
                 std::function<uint8_t*()> getDataPointer)
 {
     size_t deltaLen = delta.size();
-    if (deltaLen < 2) {
+    if (deltaLen < 1) {
         throw std::runtime_error("Delta too short to be valid");
     }
     if (delta[0] != DELTA_PROTOCOL_VERSION) {

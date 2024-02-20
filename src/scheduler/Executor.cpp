@@ -428,13 +428,19 @@ void Executor::threadPoolThread(std::stop_token st, int threadPoolIdx)
             if (isThreads) {
                 sch.setThreadResult(msg, 1, "", {});
             } else {
-                sch.setFunctionResult(msg);
+                try {
+                    sch.setFunctionResult(msg);
+                } catch (const std::exception& ex) {
+                    SPDLOG_ERROR("[Executor.cpp::threadPoolThread] Failed to set function result: {}", ex.what());
+                }
             }
         }
     };
     if (threadPoolIdx == 0) {
+        SPDLOG_INFO("Thread pool thread {}:{} is the main thread", id, threadPoolIdx);
         std::unique_lock<std::shared_mutex> _lock(resetMutex);
         try {
+            SPDLOG_INFO("Resetting module");
             reset(boundMessage);
         } catch (...) {
             SPDLOG_ERROR("Caught exception when initialising module for {}",
@@ -457,15 +463,28 @@ void Executor::threadPoolThread(std::stop_token st, int threadPoolIdx)
     // We terminate these threads by sending a shutdown message, but having this
     // check means they won't hang infinitely if destructed.
     while (!st.stop_requested()) {
-        SPDLOG_TRACE("Thread starting loop {}:{}", id, threadPoolIdx);
+        SPDLOG_INFO("Thread starting loop {}:{}", id, threadPoolIdx);
 
         ExecutorTask task;
 
         try {
             ZoneScopedNC("Dequeue task", 0x111111);
-            task = threadTaskQueues[threadPoolIdx].dequeue(conf.boundTimeout);
+            SPDLOG_DEBUG("Dequeueing task for thread {}:{} (timeout {}ms)",
+                         id,
+                         threadPoolIdx,
+                         conf.boundTimeout);
+
+            task = threadTaskQueues.at(threadPoolIdx).dequeue(conf.boundTimeout);
+            SPDLOG_DEBUG("Successfully dequeued task for thread {}:{}",
+                         id,
+                         threadPoolIdx);
+        } catch (std::bad_optional_access& e) {
+            SPDLOG_DEBUG("Bad optional access in thread {}:{}",
+                         id,
+                         threadPoolIdx);
+            continue;
         } catch (faabric::util::QueueTimeoutException& ex) {
-            SPDLOG_TRACE(
+            SPDLOG_DEBUG(
               "Thread {}:{} got no messages in timeout {}ms, looping",
               id,
               threadPoolIdx,
@@ -482,15 +501,16 @@ void Executor::threadPoolThread(std::stop_token st, int threadPoolIdx)
         }
 
         assert(task.req->messages_size() >= task.messageIndex + 1);
-        faabric::Message& msg =
-          task.req->mutable_messages()->at(task.messageIndex);
+        faabric::Message& msg = task.req->mutable_messages()->at(task.messageIndex);
 
         // Start dirty tracking if executing threads across hosts
         bool isSingleHost = task.req->singlehost();
-        bool isThreads =
-          task.req->type() == faabric::BatchExecuteRequest::THREADS;
+        bool isThreads = task.req->type() == faabric::BatchExecuteRequest::THREADS;
         bool doDirtyTracking = isThreads && !isSingleHost;
         if (doDirtyTracking) {
+            SPDLOG_DEBUG("Starting dirty tracking for thread {}:{}",
+                         id,
+                         threadPoolIdx);
             // If tracking is thread local, start here as it will happen for
             // each thread
             tracker->startThreadLocalTracking(getMemoryView());
@@ -499,11 +519,10 @@ void Executor::threadPoolThread(std::stop_token st, int threadPoolIdx)
         // Check ptp group
         std::shared_ptr<faabric::transport::PointToPointGroup> group = nullptr;
         if (msg.groupid() > 0) {
-            group =
-              faabric::transport::PointToPointGroup::getGroup(msg.groupid());
+            group = faabric::transport::PointToPointGroup::getGroup(msg.groupid());
         }
 
-        SPDLOG_TRACE("Thread {}:{} executing task {} ({}, thread={}, group={})",
+        SPDLOG_INFO("Thread {}:{} executing task {} ({}, thread={}, group={})",
                      id,
                      threadPoolIdx,
                      task.messageIndex,
@@ -512,11 +531,16 @@ void Executor::threadPoolThread(std::stop_token st, int threadPoolIdx)
                      msg.groupid());
 
         // Set up context
-        getScheduler().monitorStartedTasks.fetch_add(1,
-                                                     std::memory_order_acq_rel);
+        SPDLOG_INFO("Setting executor context for task {}:{}",
+                    id,
+                    threadPoolIdx);
+        getScheduler().monitorStartedTasks.fetch_add(1,std::memory_order_acq_rel);
         ExecutorContext::set(this, task.req, task.messageIndex);
 
         // Execute the task
+        SPDLOG_INFO("Executing task {}:{}",
+                    id,
+                    threadPoolIdx);
         int64_t msgTimestamp = msg.timestamp();
         int64_t nowTimestamp = faabric::util::getGlobalClock().epochMillis();
         int32_t returnValue;
@@ -585,7 +609,7 @@ void Executor::threadPoolThread(std::stop_token st, int threadPoolIdx)
         assert(oldTaskCount >= 0);
         bool isLastInBatch = oldTaskCount == 1;
 
-        SPDLOG_TRACE("Task {} finished by thread {}:{} ({} left)",
+        SPDLOG_INFO("[Faabric] Task {} finished by thread {}:{} ({} left)",
                      faabric::util::funcToString(msg, true),
                      id,
                      threadPoolIdx,
@@ -645,6 +669,7 @@ void Executor::threadPoolThread(std::stop_token st, int threadPoolIdx)
         // executor has been reset, otherwise the executor may not be reused for
         // a repeat invocation.
         if (isThreads) {
+            SPDLOG_INFO("Set result of the task");
             ZoneScopedN("Task set result");
             // Set non-final thread result
             if (isLastInBatch) {
@@ -656,12 +681,17 @@ void Executor::threadPoolThread(std::stop_token st, int threadPoolIdx)
         } else {
             ZoneScopedN("Task set result");
             // Set normal function result
-            sch.setFunctionResult(msg);
+            try {
+                sch.setFunctionResult(msg);
+            } catch (const std::exception& ex) {
+                SPDLOG_ERROR("Failed to set function result: {}", ex.what());
+            }
         }
         // If this is not a threads request and last in its batch, it may be
         // the main function in a threaded application, in which case we
         // want to stop any tracking and delete the main thread snapshot
         if (!isThreads && isLastInBatch) {
+            SPDLOG_INFO("Not threads request and last in batch");
             // Stop tracking memory
             std::span<uint8_t> memView = getMemoryView();
             if (!memView.empty()) {
@@ -678,6 +708,7 @@ void Executor::threadPoolThread(std::stop_token st, int threadPoolIdx)
         // claim. Note that we have to release the claim _after_ resetting,
         // otherwise the executor won't be ready for reuse
         if (isLastInBatch) {
+            SPDLOG_INFO("Last in batch detected, resetting executor and releasing claim");
             // Threads skip the reset as they will be restored from their
             // respective snapshot on the next execution.
             if (isThreads || skippedExec) {
@@ -693,7 +724,7 @@ void Executor::threadPoolThread(std::stop_token st, int threadPoolIdx)
         }
 
         task = ExecutorTask();
-
+        SPDLOG_INFO("Fetched executor task");
         // Return this thread index to the pool available for scheduling
         {
             faabric::util::UniqueLock lock(threadsMutex);
@@ -710,8 +741,11 @@ void Executor::threadPoolThread(std::stop_token st, int threadPoolIdx)
         // try to schedule another function and be unable to reuse this
         // executor.
         ZoneScopedN("Task vacate slot");
+        SPDLOG_INFO("Vacating slot");
         sch.vacateSlot();
+        SPDLOG_INFO("[Executor] Slot vacated");
     }
+    SPDLOG_INFO("Calling soft shutdown");
     softShutdown();
 }
 

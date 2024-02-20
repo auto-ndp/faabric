@@ -47,6 +47,7 @@ message BatchExecuteRequest {
 message HostResources {
     int32 slots = 1;
     int32 usedSlots = 2;
+    double loadAverage = 3;
 }
 
 message UnregisterRequest {
@@ -70,6 +71,12 @@ message FunctionStatusResponse {
         ERROR = 1;
     }
     FunctionStatus status = 1;
+}
+
+message NodeUtilisationResponse {
+    double cpu_utilisation = 1;
+    double mem_utilisation = 2;
+    double load_avg = 3;
 }
 
 // ---------------------------------------------

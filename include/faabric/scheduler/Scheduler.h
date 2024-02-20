@@ -8,6 +8,7 @@
 #include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/transport/PointToPointBroker.h>
 #include <faabric/util/PeriodicBackgroundThread.h>
+#include <faabric/util/system_metrics.h>
 #include <faabric/util/asio.h>
 #include <faabric/util/clock.h>
 #include <faabric/util/config.h>
@@ -277,7 +278,11 @@ class Scheduler
 
     inline void setFunctionResult(const faabric::Message& msg)
     {
-        setFunctionResult(std::make_unique<faabric::Message>(msg));
+      try {
+          setFunctionResult(std::make_unique<faabric::Message>(msg));
+      } catch (const std::exception& e) {
+          SPDLOG_ERROR("[Scheduler.h] Failed to set function result: {}", e.what());
+      }
     }
 
     faabric::Message getFunctionResult(unsigned int messageId,
@@ -461,6 +466,8 @@ class Scheduler
       faabric::util::FullLock& lock,
       faabric::util::SchedulingTopologyHint topologyHint,
       std::shared_ptr<void> extraData);
+
+    std::set<std::string> applyLoadBalancedPolicy(std::vector<std::string> hosts);
 
     std::shared_ptr<Executor> claimExecutor(const faabric::MessageInBatch& msg);
 

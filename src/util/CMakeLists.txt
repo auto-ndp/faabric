@@ -27,4 +27,5 @@ faabric_lib(util
     string_tools.cpp
     timing.cpp
     testing.cpp
+    system_metrics.cpp
 )

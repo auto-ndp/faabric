@@ -28,11 +28,13 @@ void FunctionCallServer::registerNdpDeltaHandler(
   int id,
   std::function<std::vector<uint8_t>()> handler)
 {
+    SPDLOG_DEBUG("Registering NDP delta handler for id {}", id);
     ndpDeltaHandlers.insertOrAssign(id, std::move(handler));
 }
 
 void FunctionCallServer::removeNdpDeltaHandler(int id)
 {
+    SPDLOG_DEBUG("Removing NDP delta handler for id {}", id);
     ndpDeltaHandlers.erase(id);
 }
 
@@ -74,6 +76,7 @@ std::unique_ptr<google::protobuf::Message> FunctionCallServer::doSyncRecv(
             return recvPendingMigrations(message.udata());
         }
         case faabric::scheduler::FunctionCalls::NdpDeltaRequest: {
+            SPDLOG_DEBUG("Received NDP delta request");
             return recvNdpDeltaRequest(message.udata());
         }
         default: {
@@ -136,7 +139,11 @@ void FunctionCallServer::recvDirectResult(std::span<const uint8_t> buffer)
     PARSE_MSG(faabric::DirectResultTransmission, buffer.data(), buffer.size())
 
     std::unique_ptr<faabric::Message> result{ parsedMsg.release_result() };
-    scheduler.setFunctionResult(std::move(result));
+    try {
+        scheduler.setFunctionResult(std::move(result));
+    } catch (const std::exception& e) {
+        SPDLOG_ERROR("Failed to set direct result: {}", e.what());
+    }
 }
 
 std::unique_ptr<google::protobuf::Message>
@@ -150,6 +157,7 @@ FunctionCallServer::recvPendingMigrations(std::span<const uint8_t> buffer)
     scheduler.addPendingMigration(msgPtr);
 
     return std::make_unique<faabric::EmptyResponse>();
+
 }
 
 std::unique_ptr<google::protobuf::Message>
@@ -157,11 +165,18 @@ FunctionCallServer::recvNdpDeltaRequest(std::span<const uint8_t> buffer)
 {
     PARSE_MSG(faabric::GetNdpDelta, buffer.data(), buffer.size());
 
-    auto ndpDelta = ndpDeltaHandlers.get(parsedMsg.id()).value()();
+    auto ndpDelta = ndpDeltaHandlers.get(parsedMsg.id());
+
+    if (!ndpDelta.has_value()) {
+        SPDLOG_ERROR("No NDP delta handler found for id {}", parsedMsg.id());
+        return std::make_unique<faabric::EmptyResponse>();
+    }
+
+    std::vector<uint8_t> ndpDeltaData = ndpDelta.value()();
 
     auto response = std::make_unique<faabric::NdpDelta>();
     response->mutable_delta()->assign(
-      reinterpret_cast<const char*>(ndpDelta.data()), ndpDelta.size());
+      reinterpret_cast<const char*>(ndpDeltaData.data()), ndpDeltaData.size());
     return response;
 }
 }

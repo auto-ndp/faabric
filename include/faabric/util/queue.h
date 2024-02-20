@@ -54,10 +54,13 @@ class Queue
             SPDLOG_ERROR("Invalid queue timeout: {} <= 0", timeoutMs);
             throw std::runtime_error("Invalid queue timeout");
         }
-
-        while (mq.empty()) {
+        
+        while (mq.size() == 0) {
+            SPDLOG_DEBUG("Queue is empty... waiting for dequeue");
             std::cv_status returnVal = enqueueNotifier.wait_for(
               lock, std::chrono::milliseconds(timeoutMs));
+            
+            SPDLOG_DEBUG("Queue has been notified");
 
             // Work out if this has returned due to timeout expiring
             if (returnVal == std::cv_status::timeout) {
@@ -65,11 +68,15 @@ class Queue
             }
         }
 
-        T value = std::move(mq.front());
-        mq.pop();
-        emptyNotifier.notify_one();
-
-        return value;
+        try {
+            T value = std::move(mq.front());
+            mq.pop();
+            emptyNotifier.notify_one();
+            return value;
+        } catch (std::exception& e) {
+            SPDLOG_ERROR("Caught exception when dequeueing: {}", e.what());
+            throw;
+        }
     }
 
     T* peek(long timeoutMs = 0)
