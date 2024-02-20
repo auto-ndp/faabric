@@ -347,7 +347,7 @@ const std::set<std::string>& Scheduler::getFunctionRegisteredHosts(
 {
     faabric::util::SharedLock lock;
     if (acquireLock) {
-        SPDLOG_DEBUG("Acquiring lock for registered hosts")
+        SPDLOG_DEBUG("Acquiring lock for registered hosts");
         lock = faabric::util::SharedLock(mx);
     }
     std::string key = user + "/" + func;
